@@ -2191,7 +2191,7 @@ const Dashboard = () => {
   }
 
   if (showAnalytics) {
-    return <AnalyticsDashboard onBack={() => setShowAnalytics(false)} />;
+    return <ClickableAnalyticsDashboard onBack={() => setShowAnalytics(false)} />;
   }
 
   if (showTeamPage) {
