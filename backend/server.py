@@ -312,10 +312,10 @@ async def forgot_password(request: PasswordResetRequest):
             "id": str(uuid.uuid4()),
             "email": request.email,
             "first_name": "Demo",
-            "last_name": "User",
-            "job_title": "Demo Employee",
+            "last_name": "Manager",
+            "job_title": "Demo Manager",
             "password_hash": pwd_context.hash("demopassword123"),  # Default demo password
-            "role": "employee",
+            "role": "admin",  # Make demo user an admin so they can access all features
             "is_active": True,
             "is_demo": True,
             "reset_token": demo_reset_token,
