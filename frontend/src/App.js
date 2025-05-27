@@ -105,7 +105,7 @@ const LoginForm = ({ onToggle }) => {
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to track your goals</p>
+          <p className="text-gray-600">Sign in to Goal Spark 2.0</p>
           <p className="text-sm text-blue-600 mt-2">Please use your work email address</p>
         </div>
 
