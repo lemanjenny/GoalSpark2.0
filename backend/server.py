@@ -103,6 +103,13 @@ class UserInvite(BaseModel):
     job_title: str
     custom_role: Optional[str] = None
 
+class PasswordResetRequest(BaseModel):
+    email: str
+
+class PasswordReset(BaseModel):
+    token: str
+    new_password: str
+
 class UserUpdate(BaseModel):
     job_title: Optional[str] = None
     custom_role: Optional[str] = None
