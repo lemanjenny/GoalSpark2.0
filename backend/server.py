@@ -648,6 +648,39 @@ async def get_analytics_dashboard(admin_user: User = Depends(get_admin_user)):
         recent_activities=recent_activities
     )
 
+@api_router.post("/team/invite")
+async def invite_employee(invite_data: UserInvite, admin_user: User = Depends(get_admin_user)):
+    """Invite a new employee to join the team"""
+    # Check if user already exists
+    existing_user = await db.users.find_one({"email": invite_data.email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User with this email already exists")
+    
+    # Create user with temporary password (they'll need to set it during first login)
+    temp_password = "TempPass123!"  # In production, generate random password and send via email
+    
+    user = User(
+        email=invite_data.email,
+        password_hash=get_password_hash(temp_password),
+        first_name=invite_data.first_name,
+        last_name=invite_data.last_name,
+        role=UserRole.EMPLOYEE,
+        job_title=invite_data.job_title,
+        custom_role=invite_data.custom_role or invite_data.job_title,
+        manager_id=admin_user.id
+    )
+    
+    await db.users.insert_one(user.dict())
+    
+    # TODO: In production, send email invitation with temporary password
+    # For now, return the temp password for demo purposes
+    return {
+        "message": "Employee invited successfully",
+        "employee": UserResponse(**user.dict()),
+        "temp_password": temp_password,  # Remove in production
+        "instructions": f"Employee can login with email {invite_data.email} and temporary password: {temp_password}"
+    }
+
 # Team management routes
 @api_router.get("/team")
 async def get_team(admin_user: User = Depends(get_admin_user)):
