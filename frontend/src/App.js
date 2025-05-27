@@ -1284,33 +1284,70 @@ const TeamPage = ({ onBack }) => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Team Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Team Filters</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Filters Section */}
+        <div className="bg-white rounded-lg shadow mb-6 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Filter Team Members</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Search Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Search by Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
               <input
                 type="text"
-                placeholder="Enter employee name..."
-                value={nameFilter}
-                onChange={(e) => setNameFilter(e.target.value)}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Search by name, email, or job title..."
               />
             </div>
+
+            {/* Role Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Role</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">All Roles</option>
+                <option value="all">All Roles</option>
+                <option value="admin">Managers</option>
+                <option value="employee">Employees</option>
+              </select>
+            </div>
+
+            {/* Custom Role Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Custom Role</label>
+              <select
+                value={customRoleFilter}
+                onChange={(e) => setCustomRoleFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Custom Roles</option>
                 {Array.from(new Set(teamMembers.map(m => m.custom_role || m.job_title))).map(role => (
                   <option key={role} value={role}>{role}</option>
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Filter Results Summary */}
+          <div className="mt-4 text-sm text-gray-600">
+            Showing {filteredMembers.length} of {teamMembers.length} team members
+            {searchTerm && (
+              <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                Search: "{searchTerm}"
+              </span>
+            )}
+            {roleFilter !== 'all' && (
+              <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                Role: {roleFilter === 'admin' ? 'Managers' : 'Employees'}
+              </span>
+            )}
+            {customRoleFilter !== 'all' && (
+              <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs">
+                Custom Role: {customRoleFilter}
+              </span>
+            )}
           </div>
         </div>
 
