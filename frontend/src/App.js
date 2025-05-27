@@ -2397,8 +2397,8 @@ const Dashboard = () => {
         onGoalCreated={handleGoalCreated}
       />
 
-      {/* Progress Update Modal */}
-      <ProgressUpdateModal
+      {/* Enhanced Progress Update Modal */}
+      <EnhancedProgressModal
         isOpen={showProgressModal}
         onClose={() => setShowProgressModal(false)}
         goal={selectedGoal}
