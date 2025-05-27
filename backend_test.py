@@ -107,7 +107,8 @@ class GoalTrackerAPITester:
         if success and 'access_token' in response and 'user' in response:
             self.admin_token = response['access_token']
             self.admin_user = response['user']
-            self.log_test("Admin Registration", True, f"User ID: {self.admin_user['id']}")
+            self.admin_email = admin_data['email']  # Store email for login test
+            self.log_test("Admin Registration", True, f"User ID: {self.admin_user['id']}, Role: {self.admin_user['role']}")
             return True
         else:
             self.log_test("Admin Registration", False, f"Response: {response}")
