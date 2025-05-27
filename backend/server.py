@@ -337,7 +337,9 @@ async def get_goal_progress(goal_id: str, current_user: User = Depends(get_curre
         raise HTTPException(status_code=403, detail="Access denied")
     
     progress_updates = await db.progress_updates.find({"goal_id": goal_id}).sort("timestamp", -1).to_list(100)
-    return progress_updates
+    
+    # Convert to ProgressUpdate models to ensure proper serialization
+    return [ProgressUpdate(**update) for update in progress_updates]
 
 @api_router.get("/users/team")
 async def get_team_members(admin_user: User = Depends(get_admin_user)):
