@@ -1309,6 +1309,15 @@ const TeamPage = ({ onBack }) => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          member.role === 'admin' 
+                            ? 'bg-purple-100 text-purple-800' 
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {member.role === 'admin' ? 'Manager' : 'Employee'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         {editingMember === member.id ? (
                           <input
                             type="text"
