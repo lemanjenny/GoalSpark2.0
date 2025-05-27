@@ -552,7 +552,7 @@ const AnalyticsDashboard = ({ onBack }) => {
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Analytics Data Available</h3>
             <p className="text-gray-600 mb-6">
-              Generate demo data to see the powerful analytics capabilities of the Goal Tracker system.
+              Generate demo data to see the powerful analytics capabilities of the Goal Spark 2.0 system.
             </p>
             <button
               onClick={generateDemoData}
