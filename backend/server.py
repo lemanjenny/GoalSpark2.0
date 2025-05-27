@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timedelta
+from email_service import email_service
 import jwt
 from passlib.context import CryptContext
 from enum import Enum
