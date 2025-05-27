@@ -115,8 +115,12 @@ class GoalTrackerAPITester:
 
     def test_admin_login(self):
         """Test admin user login"""
+        if not hasattr(self, 'admin_email'):
+            self.log_test("Admin Login", False, "No admin email available")
+            return False
+            
         login_data = {
-            "email": "admin@test.com",
+            "email": self.admin_email,
             "password": "password123"
         }
         
