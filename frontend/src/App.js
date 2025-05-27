@@ -578,9 +578,14 @@ const AnalyticsDashboard = ({ onBack }) => {
             </p>
             <button
               onClick={generateDemoData}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-medium"
+              disabled={loading}
+              className={`px-6 py-3 rounded-lg font-medium transition duration-200 ${
+                loading 
+                  ? 'bg-gray-400 text-white cursor-not-allowed' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             >
-              Generate Demo Data
+              {loading ? 'Generating Demo Data...' : 'Generate Demo Data'}
             </button>
             <div className="mt-4 text-sm text-gray-500">
               This will create 3 test employees with 4 months of realistic goal tracking history
