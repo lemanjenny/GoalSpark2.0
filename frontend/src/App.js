@@ -483,13 +483,23 @@ const AnalyticsDashboard = ({ onBack }) => {
       const response = await axios.get(`${API}/analytics/dashboard`);
       setAnalyticsData(response.data);
       
-      // Only hide demo button if we have substantial data (more than 10 team members with goals)
-      if (response.data && response.data.team_overview && 
-          response.data.team_overview.total_employees > 10 && 
-          response.data.team_overview.total_goals > 10) {
-        setShowDemoDataButton(false);
+      console.log('Analytics data received:', response.data);
+      
+      // Show analytics if we have ANY data (even if minimal)
+      if (response.data && response.data.team_overview) {
+        const hasData = response.data.team_overview.total_employees > 0 || 
+                       response.data.employee_performance?.length > 0 ||
+                       response.data.performance_trends?.length > 0;
+        
+        if (hasData) {
+          console.log('Has analytics data, hiding demo button');
+          setShowDemoDataButton(false);
+        } else {
+          console.log('No meaningful analytics data, showing demo button');
+          setShowDemoDataButton(true);
+        }
       } else {
-        setShowDemoDataButton(true); // Keep showing demo option
+        setShowDemoDataButton(true);
       }
     } catch (error) {
       console.error('Error fetching analytics data:', error);
