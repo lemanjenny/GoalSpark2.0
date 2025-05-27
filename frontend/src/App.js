@@ -1626,6 +1626,7 @@ const GoalCreationModal = ({ isOpen, onClose, onGoalCreated }) => {
       } else if (formData.assignment_type === 'individual') {
         // Use individual assignment
         goalData.assigned_to = formData.assigned_to;
+        goalData.comparison = formData.comparison;
         const response = await axios.post(`${API}/goals`, goalData);
         console.log('Individual goal created:', response.data);
       }
