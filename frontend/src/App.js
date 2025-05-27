@@ -484,11 +484,12 @@ const AnalyticsDashboard = ({ onBack }) => {
       setAnalyticsData(response.data);
       
       // Check if we have meaningful data
-      if (response.data.team_overview.total_employees > 0) {
+      if (response.data && response.data.team_overview && response.data.team_overview.total_employees > 0) {
         setDemoDataGenerated(true);
       }
     } catch (error) {
       console.error('Error fetching analytics data:', error);
+      setAnalyticsData({ team_overview: { total_employees: 0 }, performance_trends: [], goal_completion_stats: {}, employee_performance: [], status_distribution: {}, recent_activities: [] });
     } finally {
       setLoading(false);
     }
