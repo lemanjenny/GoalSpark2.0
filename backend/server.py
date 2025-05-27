@@ -1289,7 +1289,7 @@ async def update_goal_progress(
     # Update goal with new progress and status
     update_data = {
         "current_value": progress_data.new_value,
-        "progress_percentage": min(progress_percentage, 100),
+        "progress_percentage": progress_percentage,
         "status": progress_data.status,
         "last_updated": datetime.utcnow()
     }
