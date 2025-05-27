@@ -2404,7 +2404,28 @@ const Dashboard = () => {
                     <div className="text-sm text-gray-600 mb-4">
                       <p><strong>Cycle:</strong> {goal.cycle_type}</p>
                       <p><strong>Due:</strong> {new Date(goal.end_date).toLocaleDateString()}</p>
+                      {goal.comparison && (
+                        <p><strong>Logic:</strong> {goal.comparison.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                      )}
                     </div>
+                    
+                    {/* Latest Comment Section */}
+                    {goal.latest_comment && (
+                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="text-xs font-medium text-blue-700">Latest Update</span>
+                          {goal.latest_comment_timestamp && (
+                            <span className="text-xs text-blue-600">
+                              {new Date(goal.latest_comment_timestamp).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-700 italic">"{goal.latest_comment}"</p>
+                        {goal.latest_comment_user && (
+                          <p className="text-xs text-blue-600 mt-1">— {goal.latest_comment_user}</p>
+                        )}
+                      </div>
+                    )}
                     
                     {user.role === 'employee' && (
                       <button 
@@ -2416,8 +2437,24 @@ const Dashboard = () => {
                     )}
 
                     {user.role === 'admin' && (
-                      <div className="text-xs text-gray-500">
-                        Assigned to {goal.assigned_to?.length || 0} team member(s)
+                      <div className="space-y-3">
+                        <div className="flex space-x-2">
+                          <button 
+                            onClick={() => openEditGoalModal(goal)}
+                            className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition duration-200 text-sm"
+                          >
+                            Edit Goal
+                          </button>
+                          <button 
+                            onClick={() => openProgressModal(goal)}
+                            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200 text-sm"
+                          >
+                            Update Progress
+                          </button>
+                        </div>
+                        <div className="text-xs text-gray-500 text-center">
+                          Assigned to {goal.assigned_to?.length || 0} team member(s)
+                        </div>
                       </div>
                     )}
                   </div>
