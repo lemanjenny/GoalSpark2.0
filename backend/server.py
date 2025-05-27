@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 import jwt
 from passlib.context import CryptContext
 from enum import Enum
+import random
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -147,6 +148,14 @@ class ProgressUpdateCreate(BaseModel):
     status: GoalStatus
     comment: Optional[str] = None
 
+class AnalyticsData(BaseModel):
+    team_overview: Dict[str, Any]
+    performance_trends: List[Dict[str, Any]]
+    goal_completion_stats: Dict[str, Any]
+    employee_performance: List[Dict[str, Any]]
+    status_distribution: Dict[str, int]
+    recent_activities: List[Dict[str, Any]]
+
 # Helper functions
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -257,6 +266,370 @@ async def get_managers():
     """Get list of managers for employee registration"""
     managers = await db.users.find({"role": UserRole.ADMIN, "is_active": True}).to_list(100)
     return [{"id": m["id"], "first_name": m["first_name"], "last_name": m["last_name"], "job_title": m["job_title"]} for m in managers]
+
+# Dummy data generation
+@api_router.post("/demo/generate-data")
+async def generate_dummy_data(admin_user: User = Depends(get_admin_user)):
+    """Generate realistic dummy data for analytics demonstration"""
+    
+    # Check if demo data already exists
+    existing_demo = await db.users.find_one({"email": "testemployee1@demo.com"})
+    if existing_demo:
+        return {"message": "Demo data already exists", "generated": False}
+    
+    # Create 3 test employees
+    test_employees = []
+    employee_profiles = [
+        {
+            "first_name": "Test Employee",
+            "last_name": "1",
+            "email": "testemployee1@demo.com",
+            "job_title": "Sales Representative",
+            "custom_role": "Sales Rep",
+            "performance_type": "high"  # High performer
+        },
+        {
+            "first_name": "Test Employee", 
+            "last_name": "2",
+            "email": "testemployee2@demo.com",
+            "job_title": "Marketing Specialist",
+            "custom_role": "Marketing",
+            "performance_type": "average"  # Average performer
+        },
+        {
+            "first_name": "Test Employee",
+            "last_name": "3", 
+            "email": "testemployee3@demo.com",
+            "job_title": "Customer Support",
+            "custom_role": "Support",
+            "performance_type": "struggling"  # Needs improvement
+        }
+    ]
+    
+    # Create test employees
+    for profile in employee_profiles:
+        employee = User(
+            email=profile["email"],
+            password_hash=get_password_hash("demo123"),
+            first_name=profile["first_name"],
+            last_name=profile["last_name"],
+            role=UserRole.EMPLOYEE,
+            job_title=profile["job_title"],
+            custom_role=profile["custom_role"],
+            manager_id=admin_user.id,
+            created_at=datetime.utcnow() - timedelta(days=120)  # 4 months ago
+        )
+        
+        await db.users.insert_one(employee.dict())
+        test_employees.append((employee, profile["performance_type"]))
+    
+    # Generate historical goals and progress for each employee
+    goal_templates = [
+        {"title": "Monthly Sales Target", "type": "revenue", "unit": "$", "base_target": 5000},
+        {"title": "Client Calls Goal", "type": "target", "unit": "calls", "base_target": 50},
+        {"title": "Customer Satisfaction", "type": "percentage", "unit": "%", "base_target": 95},
+        {"title": "Lead Generation", "type": "target", "unit": "leads", "base_target": 20},
+        {"title": "Meeting Attendance", "type": "percentage", "unit": "%", "base_target": 90},
+        {"title": "Project Completion", "type": "target", "unit": "projects", "base_target": 3},
+    ]
+    
+    # Generate 4 months of historical data
+    for month_offset in range(4, 0, -1):  # 4 months ago to current
+        start_date = datetime.utcnow() - timedelta(days=30 * month_offset)
+        end_date = start_date + timedelta(days=30)
+        
+        for employee, performance_type in test_employees:
+            # Create 2-3 goals per employee per month
+            num_goals = random.randint(2, 3)
+            selected_templates = random.sample(goal_templates, num_goals)
+            
+            for template in selected_templates:
+                # Adjust target based on employee and goal type
+                target_multiplier = 1.0
+                if performance_type == "high":
+                    target_multiplier = random.uniform(1.2, 1.5)
+                elif performance_type == "average": 
+                    target_multiplier = random.uniform(0.8, 1.2)
+                else:  # struggling
+                    target_multiplier = random.uniform(0.6, 0.9)
+                
+                target_value = template["base_target"] * target_multiplier
+                
+                # Create goal
+                goal = Goal(
+                    title=f"{template['title']} - {start_date.strftime('%B %Y')}",
+                    description=f"Monthly {template['title'].lower()} for {employee.first_name} {employee.last_name}",
+                    goal_type=template["type"],
+                    target_value=target_value,
+                    current_value=0.0,
+                    unit=template["unit"],
+                    assigned_to=[employee.id],
+                    assigned_by=admin_user.id,
+                    cycle_type=GoalCycle.MONTHLY,
+                    start_date=start_date,
+                    end_date=end_date,
+                    status=GoalStatus.ON_TRACK,
+                    created_at=start_date,
+                    is_active=month_offset == 1  # Only current month goals are active
+                )
+                
+                await db.goals.insert_one(goal.dict())
+                
+                # Generate realistic progress updates throughout the month
+                current_date = start_date
+                current_value = 0.0
+                
+                # Performance patterns based on employee type
+                if performance_type == "high":
+                    # Steady progress, usually exceeds targets
+                    final_completion = random.uniform(1.05, 1.3)  # 105-130% completion
+                    status_pattern = ["on_track"] * 8 + ["at_risk"] * 1 + ["on_track"] * 1
+                elif performance_type == "average":
+                    # Moderate progress, mixed results
+                    final_completion = random.uniform(0.7, 1.1)  # 70-110% completion
+                    status_pattern = ["on_track"] * 5 + ["at_risk"] * 3 + ["off_track"] * 2
+                else:  # struggling
+                    # Inconsistent progress, often behind
+                    final_completion = random.uniform(0.4, 0.8)  # 40-80% completion
+                    status_pattern = ["on_track"] * 3 + ["at_risk"] * 4 + ["off_track"] * 3
+                
+                # Generate 8-10 progress updates throughout the month
+                num_updates = random.randint(8, 10)
+                for i in range(num_updates):
+                    days_progress = (30 / num_updates) * (i + 1)
+                    update_date = start_date + timedelta(days=days_progress)
+                    
+                    # Calculate progress value (with some randomness)
+                    progress_ratio = (i + 1) / num_updates
+                    base_progress = target_value * final_completion * progress_ratio
+                    variance = base_progress * 0.1  # ±10% variance
+                    new_value = max(0, base_progress + random.uniform(-variance, variance))
+                    
+                    # Determine status based on progress and pattern
+                    if i < len(status_pattern):
+                        status = status_pattern[i]
+                    else:
+                        # Final status based on completion
+                        if new_value >= target_value * 0.95:
+                            status = "on_track"
+                        elif new_value >= target_value * 0.7:
+                            status = "at_risk"
+                        else:
+                            status = "off_track"
+                    
+                    # Create progress update
+                    progress_update = ProgressUpdate(
+                        goal_id=goal.id,
+                        user_id=employee.id,
+                        previous_value=current_value,
+                        new_value=new_value,
+                        status=status,
+                        comment=generate_realistic_comment(status, performance_type) if status != "on_track" else None,
+                        timestamp=update_date
+                    )
+                    
+                    await db.progress_updates.insert_one(progress_update.dict())
+                    current_value = new_value
+                
+                # Update final goal status and value
+                final_status = status_pattern[-1] if status_pattern else "on_track"
+                await db.goals.update_one(
+                    {"id": goal.id},
+                    {"$set": {
+                        "current_value": current_value,
+                        "status": final_status
+                    }}
+                )
+    
+    return {
+        "message": "Demo data generated successfully",
+        "generated": True,
+        "employees_created": len(test_employees),
+        "time_period": "4 months of historical data"
+    }
+
+def generate_realistic_comment(status: str, performance_type: str) -> str:
+    """Generate realistic comments based on status and performance type"""
+    
+    if status == "at_risk":
+        if performance_type == "high":
+            comments = [
+                "Slight delay due to client meeting reschedules, will catch up this week",
+                "Waiting for approval on two major deals, confident about hitting target",
+                "Had to focus on urgent customer issue, back on track now"
+            ]
+        elif performance_type == "average":
+            comments = [
+                "Behind schedule due to system downtime last week",
+                "Need additional support to reach target this month",
+                "Market conditions challenging, working on new strategies"
+            ]
+        else:  # struggling
+            comments = [
+                "Struggling with new process, need additional training",
+                "Personal issues affecting performance, improving next week",
+                "Technical difficulties slowing progress, IT working on solution"
+            ]
+    else:  # off_track
+        if performance_type == "high":
+            comments = [
+                "Major client postponed project, will impact this month but next month looks strong",
+                "Team member was sick, taking on extra workload temporarily"
+            ]
+        elif performance_type == "average":
+            comments = [
+                "Significantly behind due to unexpected project requirements",
+                "Need manager support to prioritize tasks better"
+            ]
+        else:  # struggling
+            comments = [
+                "Need immediate help and training to improve performance",
+                "Overwhelmed with current workload, require task redistribution",
+                "Personal challenges affecting work, seeking support"
+            ]
+    
+    return random.choice(comments)
+
+# Analytics endpoints
+@api_router.get("/analytics/dashboard", response_model=AnalyticsData)
+async def get_analytics_dashboard(admin_user: User = Depends(get_admin_user)):
+    """Get comprehensive analytics data for dashboard"""
+    
+    # Get all team members
+    team_members = await db.users.find({"manager_id": admin_user.id, "is_active": True}).to_list(100)
+    team_member_ids = [member["id"] for member in team_members]
+    
+    if not team_member_ids:
+        # Return empty analytics if no team members
+        return AnalyticsData(
+            team_overview={},
+            performance_trends=[],
+            goal_completion_stats={},
+            employee_performance=[],
+            status_distribution={},
+            recent_activities=[]
+        )
+    
+    # Get all goals for the team
+    all_goals = await db.goals.find({"assigned_to": {"$in": team_member_ids}}).to_list(1000)
+    
+    # Get all progress updates for the team
+    goal_ids = [goal["id"] for goal in all_goals]
+    all_progress = await db.progress_updates.find({"goal_id": {"$in": goal_ids}}).to_list(10000)
+    
+    # Team Overview
+    total_goals = len(all_goals)
+    active_goals = len([g for g in all_goals if g["is_active"]])
+    completed_goals = len([g for g in all_goals if not g["is_active"] and g["current_value"] >= g["target_value"] * 0.95])
+    
+    team_overview = {
+        "total_employees": len(team_members),
+        "total_goals": total_goals,
+        "active_goals": active_goals,
+        "completed_goals": completed_goals,
+        "completion_rate": round((completed_goals / max(total_goals, 1)) * 100, 1),
+        "avg_progress": round(sum([g["current_value"] / g["target_value"] for g in all_goals]) / max(len(all_goals), 1) * 100, 1)
+    }
+    
+    # Performance Trends (last 4 months)
+    monthly_trends = []
+    for month_offset in range(4, 0, -1):
+        month_start = datetime.utcnow() - timedelta(days=30 * month_offset)
+        month_end = month_start + timedelta(days=30)
+        month_name = month_start.strftime("%B %Y")
+        
+        month_goals = [g for g in all_goals if month_start <= datetime.fromisoformat(g["start_date"].replace('Z', '+00:00')) <= month_end]
+        month_completed = len([g for g in month_goals if g["current_value"] >= g["target_value"] * 0.95])
+        
+        monthly_trends.append({
+            "month": month_name,
+            "goals_created": len(month_goals),
+            "goals_completed": month_completed,
+            "completion_rate": round((month_completed / max(len(month_goals), 1)) * 100, 1),
+            "avg_progress": round(sum([g["current_value"] / g["target_value"] for g in month_goals]) / max(len(month_goals), 1) * 100, 1) if month_goals else 0
+        })
+    
+    # Goal Completion Stats
+    on_track = len([g for g in all_goals if g["status"] == "on_track"])
+    at_risk = len([g for g in all_goals if g["status"] == "at_risk"])
+    off_track = len([g for g in all_goals if g["status"] == "off_track"])
+    
+    goal_completion_stats = {
+        "total": total_goals,
+        "on_track": on_track,
+        "at_risk": at_risk,
+        "off_track": off_track,
+        "on_track_percentage": round((on_track / max(total_goals, 1)) * 100, 1),
+        "at_risk_percentage": round((at_risk / max(total_goals, 1)) * 100, 1),
+        "off_track_percentage": round((off_track / max(total_goals, 1)) * 100, 1)
+    }
+    
+    # Employee Performance
+    employee_performance = []
+    for member in team_members:
+        member_goals = [g for g in all_goals if member["id"] in g["assigned_to"]]
+        member_completed = len([g for g in member_goals if g["current_value"] >= g["target_value"] * 0.95])
+        member_progress = sum([g["current_value"] / g["target_value"] for g in member_goals]) / max(len(member_goals), 1) * 100
+        
+        # Calculate performance score (0-100)
+        completion_score = (member_completed / max(len(member_goals), 1)) * 50
+        progress_score = min(member_progress, 100) * 0.5
+        performance_score = completion_score + progress_score
+        
+        employee_performance.append({
+            "id": member["id"],
+            "name": f"{member['first_name']} {member['last_name']}",
+            "role": member.get("custom_role", member["job_title"]),
+            "total_goals": len(member_goals),
+            "completed_goals": member_completed,
+            "completion_rate": round((member_completed / max(len(member_goals), 1)) * 100, 1),
+            "avg_progress": round(member_progress, 1),
+            "performance_score": round(performance_score, 1),
+            "status_distribution": {
+                "on_track": len([g for g in member_goals if g["status"] == "on_track"]),
+                "at_risk": len([g for g in member_goals if g["status"] == "at_risk"]),
+                "off_track": len([g for g in member_goals if g["status"] == "off_track"])
+            }
+        })
+    
+    # Sort by performance score
+    employee_performance.sort(key=lambda x: x["performance_score"], reverse=True)
+    
+    # Status Distribution
+    status_distribution = {
+        "on_track": on_track,
+        "at_risk": at_risk,
+        "off_track": off_track
+    }
+    
+    # Recent Activities (last 10 progress updates)
+    recent_progress = sorted(all_progress, key=lambda x: x["timestamp"], reverse=True)[:10]
+    recent_activities = []
+    
+    for progress in recent_progress:
+        goal = next((g for g in all_goals if g["id"] == progress["goal_id"]), None)
+        member = next((m for m in team_members if m["id"] == progress["user_id"]), None)
+        
+        if goal and member:
+            recent_activities.append({
+                "employee_name": f"{member['first_name']} {member['last_name']}",
+                "goal_title": goal["title"],
+                "status": progress["status"],
+                "progress_value": progress["new_value"],
+                "target_value": goal["target_value"],
+                "unit": goal["unit"],
+                "timestamp": progress["timestamp"],
+                "comment": progress.get("comment")
+            })
+    
+    return AnalyticsData(
+        team_overview=team_overview,
+        performance_trends=monthly_trends,
+        goal_completion_stats=goal_completion_stats,
+        employee_performance=employee_performance,
+        status_distribution=status_distribution,
+        recent_activities=recent_activities
+    )
 
 # Team management routes
 @api_router.get("/team")
