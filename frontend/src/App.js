@@ -532,7 +532,7 @@ const AnalyticsDashboard = ({ onBack }) => {
     );
   }
 
-  if (!demoDataGenerated || !analyticsData || !analyticsData.team_overview || analyticsData.team_overview.total_employees === 0) {
+  if (showDemoOption && (!analyticsData || !analyticsData.team_overview || analyticsData.team_overview.total_employees === 0)) {
     return (
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white shadow-sm border-b">
