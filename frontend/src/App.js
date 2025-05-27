@@ -1021,11 +1021,20 @@ const TeamPage = ({ onBack }) => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Team Roster</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              {teamMembers.length} team member{teamMembers.length !== 1 ? 's' : ''}
-            </p>
+          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Team Roster</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                {teamMembers.length} team member{teamMembers.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowInviteModal(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200 flex items-center space-x-2"
+            >
+              <span>+</span>
+              <span>Invite Employee</span>
+            </button>
           </div>
 
           {teamMembers.length === 0 ? (
