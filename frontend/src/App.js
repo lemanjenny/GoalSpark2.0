@@ -2130,6 +2130,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showProgressModal, setShowProgressModal] = useState(false);
+  const [showEditGoalModal, setShowEditGoalModal] = useState(false);
   const [showTeamPage, setShowTeamPage] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
