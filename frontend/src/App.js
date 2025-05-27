@@ -346,14 +346,557 @@ const RegistrationForm = ({ onToggle }) => {
   );
 };
 
-// Dashboard Component
+// Goal Creation Modal
+const GoalCreationModal = ({ isOpen, onClose, onGoalCreated }) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    goal_type: 'target',
+    target_value: '',
+    unit: '',
+    cycle_type: 'monthly',
+    start_date: '',
+    end_date: '',
+    assigned_to: [],
+    assignment_type: 'individual' // 'individual' or 'role'
+  });
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchTeamMembers();
+      // Set default dates
+      const now = new Date();
+      const startDate = new Date(now);
+      const endDate = new Date(now);
+      endDate.setMonth(endDate.getMonth() + 1); // Default to 1 month
+
+      setFormData(prev => ({
+        ...prev,
+        start_date: startDate.toISOString().split('T')[0],
+        end_date: endDate.toISOString().split('T')[0]
+      }));
+    }
+  }, [isOpen]);
+
+  const fetchTeamMembers = async () => {
+    try {
+      const response = await axios.get(`${API}/users/team`);
+      setTeamMembers(response.data);
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const goalData = {
+        ...formData,
+        target_value: parseFloat(formData.target_value),
+        start_date: new Date(formData.start_date).toISOString(),
+        end_date: new Date(formData.end_date).toISOString(),
+      };
+
+      // Handle role-based assignment
+      if (formData.assignment_type === 'role') {
+        const selectedRole = formData.role_assignment;
+        const roleMembers = teamMembers.filter(member => member.job_title === selectedRole);
+        goalData.assigned_to = roleMembers.map(member => member.id);
+      }
+
+      await axios.post(`${API}/goals`, goalData);
+      onGoalCreated();
+      onClose();
+      
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        goal_type: 'target',
+        target_value: '',
+        unit: '',
+        cycle_type: 'monthly',
+        start_date: '',
+        end_date: '',
+        assigned_to: [],
+        assignment_type: 'individual'
+      });
+    } catch (error) {
+      setError(error.response?.data?.detail || 'Failed to create goal');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    
+    if (name === 'assigned_to' && type === 'checkbox') {
+      setFormData(prev => ({
+        ...prev,
+        assigned_to: checked 
+          ? [...prev.assigned_to, value]
+          : prev.assigned_to.filter(id => id !== value)
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  // Get unique job titles for role assignment
+  const jobTitles = [...new Set(teamMembers.map(member => member.job_title))];
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Create New Goal</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 text-2xl"
+            >
+              ×
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Goal Title</label>
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., Q1 Sales Target"
+                  required
+                />
+              </div>
+
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Describe the goal and success criteria..."
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Goal Type</label>
+                <select
+                  name="goal_type"
+                  value={formData.goal_type}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="target">Target (Count)</option>
+                  <option value="percentage">Percentage</option>
+                  <option value="revenue">Revenue ($)</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cycle</label>
+                <select
+                  name="cycle_type"
+                  value={formData.cycle_type}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Target Value</label>
+                <input
+                  type="number"
+                  name="target_value"
+                  value={formData.target_value}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="100"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                <input
+                  type="text"
+                  name="unit"
+                  value={formData.unit}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="calls, $, %, units..."
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                <input
+                  type="date"
+                  name="start_date"
+                  value={formData.start_date}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                <input
+                  type="date"
+                  name="end_date"
+                  value={formData.end_date}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Assignment Type */}
+            <div className="border-t pt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Assignment Type</label>
+              <div className="space-y-2">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="assignment_type"
+                    value="individual"
+                    checked={formData.assignment_type === 'individual'}
+                    onChange={handleChange}
+                    className="mr-2"
+                  />
+                  Assign to specific team members
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="assignment_type"
+                    value="role"
+                    checked={formData.assignment_type === 'role'}
+                    onChange={handleChange}
+                    className="mr-2"
+                  />
+                  Assign to everyone with a specific role
+                </label>
+              </div>
+            </div>
+
+            {/* Individual Assignment */}
+            {formData.assignment_type === 'individual' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select Team Members</label>
+                <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-2">
+                  {teamMembers.map((member) => (
+                    <label key={member.id} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="assigned_to"
+                        value={member.id}
+                        checked={formData.assigned_to.includes(member.id)}
+                        onChange={handleChange}
+                        className="mr-2"
+                      />
+                      <span>{member.first_name} {member.last_name} - {member.job_title}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Role Assignment */}
+            {formData.assignment_type === 'role' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Select Role</label>
+                <select
+                  name="role_assignment"
+                  value={formData.role_assignment || ''}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Choose a role...</option>
+                  {jobTitles.map((title) => (
+                    <option key={title} value={title}>
+                      {title} ({teamMembers.filter(m => m.job_title === title).length} members)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            <div className="flex space-x-4 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading || (formData.assignment_type === 'individual' && formData.assigned_to.length === 0)}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200 disabled:opacity-50"
+              >
+                {loading ? 'Creating...' : 'Create Goal'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Progress Update Modal
+const ProgressUpdateModal = ({ isOpen, onClose, goal, onProgressUpdated }) => {
+  const [formData, setFormData] = useState({
+    new_value: '',
+    status: 'on_track',
+    comment: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen && goal) {
+      setFormData(prev => ({
+        ...prev,
+        new_value: goal.current_value.toString()
+      }));
+    }
+  }, [isOpen, goal]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      await axios.post(`${API}/goals/${goal.id}/progress`, {
+        goal_id: goal.id,
+        new_value: parseFloat(formData.new_value),
+        status: formData.status,
+        comment: formData.comment || null
+      });
+
+      onProgressUpdated();
+      onClose();
+      setFormData({ new_value: '', status: 'on_track', comment: '' });
+    } catch (error) {
+      setError(error.response?.data?.detail || 'Failed to update progress');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (e) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const calculateProgress = () => {
+    if (!goal || !formData.new_value) return 0;
+    return Math.min((parseFloat(formData.new_value) / goal.target_value) * 100, 100);
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'on_track': return 'bg-green-100 text-green-800 border-green-200';
+      case 'at_risk': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'off_track': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'on_track': return '🟢 On Track';
+      case 'at_risk': return '🟡 At Risk';
+      case 'off_track': return '🔴 Off Track';
+      default: return status;
+    }
+  };
+
+  if (!isOpen || !goal) return null;
+
+  const progress = calculateProgress();
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl shadow-lg max-w-lg w-full">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Update Progress</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 text-2xl"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="mb-6">
+            <h3 className="font-semibold text-lg text-gray-900 mb-2">{goal.title}</h3>
+            <p className="text-gray-600 text-sm">{goal.description}</p>
+            <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+              <div className="text-sm text-gray-600">
+                Current: {goal.current_value} / {goal.target_value} {goal.unit}
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                New Progress Value
+              </label>
+              <input
+                type="number"
+                name="new_value"
+                value={formData.new_value}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                min="0"
+                step="0.01"
+                required
+              />
+              {formData.new_value && (
+                <div className="mt-2">
+                  <div className="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>Progress</span>
+                    <span>{progress.toFixed(1)}% complete</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <div className="space-y-2">
+                {['on_track', 'at_risk', 'off_track'].map((status) => (
+                  <label key={status} className="flex items-center">
+                    <input
+                      type="radio"
+                      name="status"
+                      value={status}
+                      checked={formData.status === status}
+                      onChange={handleChange}
+                      className="mr-3"
+                    />
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(status)}`}>
+                      {getStatusText(status)}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {(formData.status === 'at_risk' || formData.status === 'off_track') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Comment <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="comment"
+                  value={formData.comment}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Please explain why this goal is at risk or off track..."
+                  required={formData.status !== 'on_track'}
+                />
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            <div className="flex space-x-4 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200 disabled:opacity-50"
+              >
+                {loading ? 'Updating...' : 'Update Progress'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Enhanced Dashboard Component
 const Dashboard = () => {
   const { user, logout } = React.useContext(AuthContext);
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState(null);
+  const [refreshInterval, setRefreshInterval] = useState(null);
 
   useEffect(() => {
     fetchGoals();
+    
+    // Set up auto-refresh every 30 seconds for real-time updates
+    const interval = setInterval(() => {
+      fetchGoals();
+    }, 30000);
+    setRefreshInterval(interval);
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, []);
 
   const fetchGoals = async () => {
@@ -367,26 +910,58 @@ const Dashboard = () => {
     }
   };
 
+  const handleGoalCreated = () => {
+    fetchGoals();
+  };
+
+  const handleProgressUpdated = () => {
+    fetchGoals();
+    setSelectedGoal(null);
+  };
+
+  const openProgressModal = (goal) => {
+    setSelectedGoal(goal);
+    setShowProgressModal(true);
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
-      case 'on_track': return 'bg-green-100 text-green-800';
-      case 'at_risk': return 'bg-yellow-100 text-yellow-800';
-      case 'off_track': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'on_track': return 'bg-green-100 text-green-800 border-green-200';
+      case 'at_risk': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'off_track': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const getStatusText = (status) => {
     switch (status) {
-      case 'on_track': return 'On Track';
-      case 'at_risk': return 'At Risk';
-      case 'off_track': return 'Off Track';
+      case 'on_track': return '🟢 On Track';
+      case 'at_risk': return '🟡 At Risk';
+      case 'off_track': return '🔴 Off Track';
       default: return status;
+    }
+  };
+
+  const getProgressBarColor = (status, progress) => {
+    if (progress >= 100) return 'bg-green-500';
+    switch (status) {
+      case 'on_track': return 'bg-green-500';
+      case 'at_risk': return 'bg-yellow-500';
+      case 'off_track': return 'bg-red-500';
+      default: return 'bg-blue-500';
     }
   };
 
   const calculateProgress = (current, target) => {
     return Math.min((current / target) * 100, 100);
+  };
+
+  const getGoalsByStatus = () => {
+    const onTrack = goals.filter(g => g.status === 'on_track');
+    const atRisk = goals.filter(g => g.status === 'at_risk');
+    const offTrack = goals.filter(g => g.status === 'off_track');
+    
+    return { onTrack, atRisk, offTrack };
   };
 
   if (loading) {
@@ -400,6 +975,8 @@ const Dashboard = () => {
     );
   }
 
+  const { onTrack, atRisk, offTrack } = getGoalsByStatus();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -411,7 +988,22 @@ const Dashboard = () => {
               <p className="text-sm text-gray-600">Welcome back, {user.first_name}!</p>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">{user.role === 'admin' ? 'Manager' : 'Employee'}</span>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                user.role === 'admin' 
+                  ? 'bg-blue-100 text-blue-800' 
+                  : 'bg-green-100 text-green-800'
+              }`}>
+                {user.role === 'admin' ? 'Manager' : 'Employee'}
+              </span>
+              {user.role === 'admin' && (
+                <button
+                  onClick={() => setShowGoalModal(true)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200 flex items-center space-x-2"
+                >
+                  <span>+</span>
+                  <span>Create Goal</span>
+                </button>
+              )}
               <button
                 onClick={logout}
                 className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition duration-200"
@@ -425,10 +1017,37 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats Overview */}
+        {goals.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="text-2xl font-bold text-gray-900">{goals.length}</div>
+              <div className="text-gray-600">Total Goals</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="text-2xl font-bold text-green-600">{onTrack.length}</div>
+              <div className="text-gray-600">🟢 On Track</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="text-2xl font-bold text-yellow-600">{atRisk.length}</div>
+              <div className="text-gray-600">🟡 At Risk</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="text-2xl font-bold text-red-600">{offTrack.length}</div>
+              <div className="text-gray-600">🔴 Off Track</div>
+            </div>
+          </div>
+        )}
+
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            {user.role === 'admin' ? 'Team Goals Overview' : 'Your Active Goals'}
-          </h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">
+              {user.role === 'admin' ? 'Team Goals Overview' : 'Your Active Goals'}
+            </h2>
+            <div className="text-sm text-gray-500">
+              Auto-refreshes every 30 seconds
+            </div>
+          </div>
 
           {goals.length === 0 ? (
             <div className="bg-white rounded-lg shadow p-8 text-center">
@@ -443,16 +1062,26 @@ const Dashboard = () => {
                   ? 'Start by creating goals for your team members.' 
                   : 'Your manager will assign goals to you soon.'}
               </p>
+              {user.role === 'admin' && (
+                <button
+                  onClick={() => setShowGoalModal(true)}
+                  className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200"
+                >
+                  Create Your First Goal
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {goals.map((goal) => {
                 const progress = calculateProgress(goal.current_value, goal.target_value);
+                const daysLeft = Math.ceil((new Date(goal.end_date) - new Date()) / (1000 * 60 * 60 * 24));
+                
                 return (
-                  <div key={goal.id} className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                  <div key={goal.id} className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
                     <div className="flex justify-between items-start mb-4">
                       <h3 className="font-semibold text-gray-900 text-lg">{goal.title}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(goal.status)}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(goal.status)}`}>
                         {getStatusText(goal.status)}
                       </span>
                     </div>
@@ -464,26 +1093,36 @@ const Dashboard = () => {
                         <span>Progress</span>
                         <span>{goal.current_value} / {goal.target_value} {goal.unit}</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 rounded-full h-3">
                         <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                          className={`h-3 rounded-full transition-all duration-300 ${getProgressBarColor(goal.status, progress)}`}
                           style={{ width: `${progress}%` }}
                         ></div>
                       </div>
-                      <div className="text-right text-xs text-gray-500 mt-1">
-                        {progress.toFixed(1)}% complete
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>{progress.toFixed(1)}% complete</span>
+                        <span>{daysLeft > 0 ? `${daysLeft} days left` : 'Overdue'}</span>
                       </div>
                     </div>
                     
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-gray-600 mb-4">
                       <p><strong>Cycle:</strong> {goal.cycle_type}</p>
                       <p><strong>Due:</strong> {new Date(goal.end_date).toLocaleDateString()}</p>
                     </div>
                     
                     {user.role === 'employee' && (
-                      <button className="w-full mt-4 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200">
+                      <button 
+                        onClick={() => openProgressModal(goal)}
+                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200"
+                      >
                         Update Progress
                       </button>
+                    )}
+
+                    {user.role === 'admin' && (
+                      <div className="text-xs text-gray-500">
+                        Assigned to {goal.assigned_to?.length || 0} team member(s)
+                      </div>
                     )}
                   </div>
                 );
@@ -492,6 +1131,21 @@ const Dashboard = () => {
           )}
         </div>
       </main>
+
+      {/* Goal Creation Modal */}
+      <GoalCreationModal
+        isOpen={showGoalModal}
+        onClose={() => setShowGoalModal(false)}
+        onGoalCreated={handleGoalCreated}
+      />
+
+      {/* Progress Update Modal */}
+      <ProgressUpdateModal
+        isOpen={showProgressModal}
+        onClose={() => setShowProgressModal(false)}
+        goal={selectedGoal}
+        onProgressUpdated={handleProgressUpdated}
+      />
     </div>
   );
 };
