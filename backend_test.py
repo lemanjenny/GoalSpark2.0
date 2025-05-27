@@ -505,6 +505,12 @@ class GoalTrackerAPITester:
         goal = self.test_create_goal()
         self.test_employee_create_goal()
         
+        # NEW FEATURE TESTS
+        self.test_update_progress()
+        self.test_get_goal_progress()
+        self.test_get_specific_goal()
+        self.test_role_based_assignment()
+        
         # Print summary
         print("\n" + "=" * 50)
         print(f"📊 Test Summary: {self.tests_passed}/{self.tests_run} tests passed")
