@@ -346,7 +346,243 @@ const RegistrationForm = ({ onToggle }) => {
   );
 };
 
-// Goal Creation Modal
+// Team Management Component
+const TeamPage = ({ onBack }) => {
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [editingMember, setEditingMember] = useState(null);
+  const [editData, setEditData] = useState({ job_title: '', custom_role: '' });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetchTeamMembers();
+  }, []);
+
+  const fetchTeamMembers = async () => {
+    try {
+      const response = await axios.get(`${API}/team`);
+      setTeamMembers(response.data);
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = (member) => {
+    setEditingMember(member.id);
+    setEditData({
+      job_title: member.job_title,
+      custom_role: member.custom_role || member.job_title
+    });
+  };
+
+  const handleSave = async (memberId) => {
+    setSaving(true);
+    try {
+      await axios.put(`${API}/team/${memberId}`, editData);
+      await fetchTeamMembers();
+      setEditingMember(null);
+    } catch (error) {
+      console.error('Error updating team member:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditingMember(null);
+    setEditData({ job_title: '', custom_role: '' });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading team...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={onBack}
+                className="text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+              >
+                <span>←</span>
+                <span>Back to Dashboard</span>
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Team Management</h1>
+                <p className="text-sm text-gray-600">Manage your team members and roles</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-lg shadow">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Team Roster</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              {teamMembers.length} team member{teamMembers.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+
+          {teamMembers.length === 0 ? (
+            <div className="p-8 text-center">
+              <div className="text-gray-400 mb-4">
+                <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM9 9a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No team members yet</h3>
+              <p className="text-gray-600">
+                Team members will appear here when they register and select you as their manager.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Employee
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Job Title
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Custom Role
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Joined
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {teamMembers.map((member) => (
+                    <tr key={member.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span className="text-blue-600 font-medium">
+                              {member.first_name[0]}{member.last_name[0]}
+                            </span>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {member.first_name} {member.last_name}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {editingMember === member.id ? (
+                          <input
+                            type="text"
+                            value={editData.job_title}
+                            onChange={(e) => setEditData({...editData, job_title: e.target.value})}
+                            className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        ) : (
+                          <div className="text-sm text-gray-900">{member.job_title}</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {editingMember === member.id ? (
+                          <input
+                            type="text"
+                            value={editData.custom_role}
+                            onChange={(e) => setEditData({...editData, custom_role: e.target.value})}
+                            className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="e.g., Sales Rep, Developer, etc."
+                          />
+                        ) : (
+                          <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                            {member.custom_role || member.job_title}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {member.email}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(member.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {editingMember === member.id ? (
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleSave(member.id)}
+                              disabled={saving}
+                              className="text-green-600 hover:text-green-900 disabled:opacity-50"
+                            >
+                              {saving ? 'Saving...' : 'Save'}
+                            </button>
+                            <button
+                              onClick={handleCancel}
+                              className="text-gray-600 hover:text-gray-900"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleEdit(member)}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Role Summary */}
+        {teamMembers.length > 0 && (
+          <div className="mt-8 bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Role Summary</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Array.from(new Set(teamMembers.map(m => m.custom_role || m.job_title))).map(role => {
+                const count = teamMembers.filter(m => (m.custom_role || m.job_title) === role).length;
+                return (
+                  <div key={role} className="bg-gray-50 p-4 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">{count}</div>
+                    <div className="text-sm text-gray-600">{role}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+// Enhanced Goal Creation Modal
 const GoalCreationModal = ({ isOpen, onClose, onGoalCreated }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -358,15 +594,18 @@ const GoalCreationModal = ({ isOpen, onClose, onGoalCreated }) => {
     start_date: '',
     end_date: '',
     assigned_to: [],
-    assignment_type: 'individual' // 'individual' or 'role'
+    assignment_type: 'individual',
+    role_assignment: ''
   });
   const [teamMembers, setTeamMembers] = useState([]);
+  const [customRoles, setCustomRoles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       fetchTeamMembers();
+      fetchCustomRoles();
       // Set default dates
       const now = new Date();
       const startDate = new Date(now);
@@ -390,27 +629,45 @@ const GoalCreationModal = ({ isOpen, onClose, onGoalCreated }) => {
     }
   };
 
+  const fetchCustomRoles = async () => {
+    try {
+      const response = await axios.get(`${API}/roles`);
+      setCustomRoles(response.data);
+    } catch (error) {
+      console.error('Error fetching custom roles:', error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const goalData = {
-        ...formData,
+      let goalData = {
+        title: formData.title,
+        description: formData.description,
+        goal_type: formData.goal_type,
         target_value: parseFloat(formData.target_value),
+        unit: formData.unit,
+        cycle_type: formData.cycle_type,
         start_date: new Date(formData.start_date).toISOString(),
         end_date: new Date(formData.end_date).toISOString(),
+        assigned_to: []
       };
 
-      // Handle role-based assignment
-      if (formData.assignment_type === 'role') {
-        const selectedRole = formData.role_assignment;
-        const roleMembers = teamMembers.filter(member => member.job_title === selectedRole);
-        goalData.assigned_to = roleMembers.map(member => member.id);
+      // Handle assignment type
+      if (formData.assignment_type === 'role' && formData.role_assignment) {
+        // Use the role-based assignment endpoint
+        const response = await axios.post(`${API}/goals/assign-by-role?role_name=${encodeURIComponent(formData.role_assignment)}`, goalData);
+        console.log('Role-based goal created:', response.data);
+      } else if (formData.assignment_type === 'individual') {
+        // Use individual assignment
+        goalData.assigned_to = formData.assigned_to;
+        const response = await axios.post(`${API}/goals`, goalData);
+        console.log('Individual goal created:', response.data);
       }
 
-      await axios.post(`${API}/goals`, goalData);
       onGoalCreated();
       onClose();
       
@@ -425,7 +682,8 @@ const GoalCreationModal = ({ isOpen, onClose, onGoalCreated }) => {
         start_date: '',
         end_date: '',
         assigned_to: [],
-        assignment_type: 'individual'
+        assignment_type: 'individual',
+        role_assignment: ''
       });
     } catch (error) {
       setError(error.response?.data?.detail || 'Failed to create goal');
@@ -448,9 +706,6 @@ const GoalCreationModal = ({ isOpen, onClose, onGoalCreated }) => {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
-
-  // Get unique job titles for role assignment
-  const jobTitles = [...new Set(teamMembers.map(member => member.job_title))];
 
   if (!isOpen) return null;
 
@@ -612,21 +867,27 @@ const GoalCreationModal = ({ isOpen, onClose, onGoalCreated }) => {
             {formData.assignment_type === 'individual' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Select Team Members</label>
-                <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-2">
-                  {teamMembers.map((member) => (
-                    <label key={member.id} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="assigned_to"
-                        value={member.id}
-                        checked={formData.assigned_to.includes(member.id)}
-                        onChange={handleChange}
-                        className="mr-2"
-                      />
-                      <span>{member.first_name} {member.last_name} - {member.job_title}</span>
-                    </label>
-                  ))}
-                </div>
+                {teamMembers.length === 0 ? (
+                  <div className="text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">
+                    No team members available. Team members need to register first.
+                  </div>
+                ) : (
+                  <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-2">
+                    {teamMembers.map((member) => (
+                      <label key={member.id} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          name="assigned_to"
+                          value={member.id}
+                          checked={formData.assigned_to.includes(member.id)}
+                          onChange={handleChange}
+                          className="mr-2"
+                        />
+                        <span>{member.first_name} {member.last_name} - {member.custom_role || member.job_title}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -634,20 +895,26 @@ const GoalCreationModal = ({ isOpen, onClose, onGoalCreated }) => {
             {formData.assignment_type === 'role' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Select Role</label>
-                <select
-                  name="role_assignment"
-                  value={formData.role_assignment || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Choose a role...</option>
-                  {jobTitles.map((title) => (
-                    <option key={title} value={title}>
-                      {title} ({teamMembers.filter(m => m.job_title === title).length} members)
-                    </option>
-                  ))}
-                </select>
+                {customRoles.length === 0 ? (
+                  <div className="text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">
+                    No custom roles available. Set up roles in the Team page first.
+                  </div>
+                ) : (
+                  <select
+                    name="role_assignment"
+                    value={formData.role_assignment}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required={formData.assignment_type === 'role'}
+                  >
+                    <option value="">Choose a role...</option>
+                    {customRoles.map((roleData) => (
+                      <option key={roleData.role} value={roleData.role}>
+                        {roleData.role} ({roleData.count} member{roleData.count !== 1 ? 's' : ''})
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             )}
 
@@ -667,7 +934,7 @@ const GoalCreationModal = ({ isOpen, onClose, onGoalCreated }) => {
               </button>
               <button
                 type="submit"
-                disabled={loading || (formData.assignment_type === 'individual' && formData.assigned_to.length === 0)}
+                disabled={loading || (formData.assignment_type === 'individual' && formData.assigned_to.length === 0) || (formData.assignment_type === 'role' && !formData.role_assignment)}
                 className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200 disabled:opacity-50"
               >
                 {loading ? 'Creating...' : 'Create Goal'}
@@ -680,7 +947,7 @@ const GoalCreationModal = ({ isOpen, onClose, onGoalCreated }) => {
   );
 };
 
-// Progress Update Modal
+// Progress Update Modal (same as before)
 const ProgressUpdateModal = ({ isOpen, onClose, goal, onProgressUpdated }) => {
   const [formData, setFormData] = useState({
     new_value: '',
@@ -882,6 +1149,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showProgressModal, setShowProgressModal] = useState(false);
+  const [showTeamPage, setShowTeamPage] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [refreshInterval, setRefreshInterval] = useState(null);
 
@@ -964,6 +1232,10 @@ const Dashboard = () => {
     return { onTrack, atRisk, offTrack };
   };
 
+  if (showTeamPage) {
+    return <TeamPage onBack={() => setShowTeamPage(false)} />;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -996,13 +1268,22 @@ const Dashboard = () => {
                 {user.role === 'admin' ? 'Manager' : 'Employee'}
               </span>
               {user.role === 'admin' && (
-                <button
-                  onClick={() => setShowGoalModal(true)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200 flex items-center space-x-2"
-                >
-                  <span>+</span>
-                  <span>Create Goal</span>
-                </button>
+                <>
+                  <button
+                    onClick={() => setShowTeamPage(true)}
+                    className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200 flex items-center space-x-2"
+                  >
+                    <span>👥</span>
+                    <span>Team</span>
+                  </button>
+                  <button
+                    onClick={() => setShowGoalModal(true)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200 flex items-center space-x-2"
+                  >
+                    <span>+</span>
+                    <span>Create Goal</span>
+                  </button>
+                </>
               )}
               <button
                 onClick={logout}
@@ -1063,12 +1344,20 @@ const Dashboard = () => {
                   : 'Your manager will assign goals to you soon.'}
               </p>
               {user.role === 'admin' && (
-                <button
-                  onClick={() => setShowGoalModal(true)}
-                  className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200"
-                >
-                  Create Your First Goal
-                </button>
+                <div className="mt-4 space-y-2">
+                  <button
+                    onClick={() => setShowGoalModal(true)}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200 mr-2"
+                  >
+                    Create Your First Goal
+                  </button>
+                  <button
+                    onClick={() => setShowTeamPage(true)}
+                    className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition duration-200"
+                  >
+                    Manage Team
+                  </button>
+                </div>
               )}
             </div>
           ) : (
