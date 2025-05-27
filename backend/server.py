@@ -1013,10 +1013,46 @@ async def restore_careerplug_users():
     if not restored_users:
         return {"message": "Users already exist - no restoration needed"}
     
+# Fix Jenny's profile
+@api_router.post("/admin/fix-jenny-profile")
+async def fix_jenny_profile():
+    """Fix Jenny's profile information"""
+    # Get Jenny's current ID first
+    jenny = await db.users.find_one({"email": "jenny@careerplug.com"})
+    if not jenny:
+        return {"message": "Jenny not found"}
+    
+    jenny_id = jenny["id"]
+    
+    # Update Jenny's profile
+    jenny_result = await db.users.update_one(
+        {"email": "jenny@careerplug.com"},
+        {"$set": {
+            "first_name": "Jenny",
+            "last_name": "CareerPlug",
+            "job_title": "CEO & Manager",
+            "role": "admin"
+        }}
+    )
+    
+    # Set Jenny as manager for Kelly and Clint
+    kelly_result = await db.users.update_one(
+        {"email": "legal@careerplug.com"},
+        {"$set": {"manager_id": jenny_id}}
+    )
+    
+    clint_result = await db.users.update_one(
+        {"email": "clint@careerplug.com"},
+        {"$set": {"manager_id": jenny_id}}
+    )
+    
     return {
-        "message": f"Successfully restored {len(restored_users)} user(s)",
-        "restored_users": restored_users,
-        "login_instructions": "Both users can login with password: password123"
+        "message": "Jenny's profile updated and team relationships established",
+        "updates": {
+            "jenny_profile_updated": jenny_result.modified_count > 0,
+            "kelly_manager_set": kelly_result.modified_count > 0,
+            "clint_manager_set": clint_result.modified_count > 0
+        }
     }
 
 # Team management routes
