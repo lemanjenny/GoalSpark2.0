@@ -910,6 +910,44 @@ async def invite_employee(invite_data: UserInvite, admin_user: User = Depends(ge
         "instructions": f"Employee can login with email {invite_data.email} and temporary password: {temp_password}"
     }
 
+# Admin user management endpoints
+@api_router.get("/admin/users", response_model=List[UserResponse])
+async def get_all_users(admin_user: User = Depends(get_admin_user)):
+    """Get all users - admin only"""
+    users = await db.users.find({}).to_list(100)
+    return [UserResponse(**user) for user in users]
+
+@api_router.patch("/admin/users/{user_id}/role")
+async def update_user_role(user_id: str, role_data: dict, admin_user: User = Depends(get_admin_user)):
+    """Update user role - admin only"""
+    new_role = role_data.get("role")
+    if new_role not in ["admin", "employee"]:
+        raise HTTPException(status_code=400, detail="Role must be 'admin' or 'employee'")
+    
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"role": new_role}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"message": f"User role updated to {new_role}"}
+
+# Fix specific user role endpoint
+@api_router.post("/admin/fix-jenny-role")
+async def fix_jenny_role():
+    """Fix jenny@careerplug.com role to admin"""
+    result = await db.users.update_one(
+        {"email": "jenny@careerplug.com"},
+        {"$set": {"role": "admin"}}
+    )
+    
+    if result.matched_count == 0:
+        return {"message": "jenny@careerplug.com not found in database"}
+    
+    return {"message": "jenny@careerplug.com role updated to admin", "modified": result.modified_count > 0}
+
 # Team management routes
 @api_router.get("/team")
 async def get_team(admin_user: User = Depends(get_admin_user)):
