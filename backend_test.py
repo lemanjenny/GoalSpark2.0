@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 
 class GoalTrackerAPITester:
-    def __init__(self, base_url="https://a57f031a-35f2-4808-be33-a7b5e2b52483.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://a1f28446-eca0-4698-8c2b-136c521c69e4.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.admin_token = None
         self.employee_token = None
