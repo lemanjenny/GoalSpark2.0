@@ -1259,16 +1259,7 @@ const TeamPage = ({ onBack }) => {
     setEditData({ job_title: '', custom_role: '' });
   };
 
-  // Filter team members based on name and role filters
-  const filteredTeamMembers = teamMembers.filter(member => {
-    const matchesName = nameFilter === '' || 
-      `${member.first_name} ${member.last_name}`.toLowerCase().includes(nameFilter.toLowerCase());
-    
-    const matchesRole = roleFilter === '' || 
-      (member.custom_role || member.job_title) === roleFilter;
-    
-    return matchesName && matchesRole;
-  });
+
 
   if (loading) {
     return (
