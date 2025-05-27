@@ -1224,6 +1224,31 @@ async def get_goal(goal_id: str, current_user: User = Depends(get_current_user))
     
     return Goal(**goal)
 
+def calculate_progress_percentage(current_value: float, target_value: float, comparison: str) -> float:
+    """Calculate progress percentage based on comparison type"""
+    if comparison == "greater_than":
+        # Traditional progress: current/target * 100
+        return min((current_value / target_value) * 100, 100) if target_value > 0 else 0
+    elif comparison == "less_than":
+        # Reverse progress: (target - current) / target * 100
+        if target_value <= 0:
+            return 100 if current_value <= 0 else 0
+        remaining = max(target_value - current_value, 0)
+        return (remaining / target_value) * 100
+    elif comparison == "equal_to":
+        # Exact match: 100% if equal, decreasing based on distance
+        if target_value == 0:
+            return 100 if current_value == 0 else 0
+        distance = abs(current_value - target_value)
+        max_acceptable_distance = abs(target_value * 0.1)  # 10% tolerance
+        if distance <= max_acceptable_distance:
+            return 100 - (distance / max_acceptable_distance) * 100
+        else:
+            return 0
+    else:
+        # Default to greater_than
+        return min((current_value / target_value) * 100, 100) if target_value > 0 else 0
+
 @api_router.post("/goals/{goal_id}/progress")
 async def update_goal_progress(
     goal_id: str, 
