@@ -62,6 +62,11 @@ class GoalType(str, Enum):
     REVENUE = "revenue"
     CUSTOM = "custom"
 
+class GoalComparison(str, Enum):
+    GREATER_THAN = "greater_than"
+    LESS_THAN = "less_than"
+    EQUAL_TO = "equal_to"
+
 # Models
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
