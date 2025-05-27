@@ -162,6 +162,19 @@ class ProgressUpdateCreate(BaseModel):
     status: GoalStatus
     comment: Optional[str] = None
 
+# Activity/Notification Models
+class ActivityItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: str  # "goal_created", "progress_updated", "status_changed", etc.
+    title: str
+    description: str
+    user_id: str
+    user_name: str
+    goal_id: Optional[str] = None
+    goal_title: Optional[str] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
 class AnalyticsData(BaseModel):
     team_overview: Dict[str, Any]
     performance_trends: List[Dict[str, Any]]
