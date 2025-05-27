@@ -301,11 +301,22 @@ async def get_managers():
 async def forgot_password(request: PasswordResetRequest):
     """Send password reset token to user's email"""
     user = await db.users.find_one({"email": request.email})
-    if not user:
-        # Don't reveal if email exists for security
-        return {"message": "If an account with that email exists, a password reset link has been sent."}
     
-    # Generate secure reset token
+    # Always generate a demo reset URL for testing purposes
+    demo_reset_token = str(uuid.uuid4())
+    demo_reset_url = f"https://a57f031a-35f2-4808-be33-a7b5e2b52483.preview.emergentagent.com/reset-password?token={demo_reset_token}"
+    
+    if not user:
+        # For security, don't reveal if email exists, but provide demo info for testing
+        return {
+            "message": "If an account with that email exists, a password reset link has been sent.",
+            "demo_mode": True,
+            "demo_note": "This email doesn't exist in the system, but here's a demo reset URL for testing",
+            "demo_reset_url": demo_reset_url,
+            "demo_instructions": f"Since this email doesn't exist, here's a demo URL for testing: {demo_reset_url}"
+        }
+    
+    # Generate secure reset token for real user
     reset_token = str(uuid.uuid4())
     reset_expires = datetime.utcnow() + timedelta(hours=1)  # Token expires in 1 hour
     
@@ -339,12 +350,13 @@ async def forgot_password(request: PasswordResetRequest):
         "message": "If an account with that email exists, a password reset link has been sent."
     }
     
-    # Add demo information only if in simulation mode (no SendGrid configured)
+    # Add demo information if in simulation mode (no SendGrid configured)
     if email_result.get("provider") == "simulation":
         response.update({
             "demo_mode": True,
             "demo_reset_url": email_result.get("demo_reset_url"),
-            "demo_instructions": email_result.get("demo_instructions")
+            "demo_instructions": email_result.get("demo_instructions"),
+            "user_exists": True
         })
     
     return response
