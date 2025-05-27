@@ -1016,7 +1016,7 @@ async def get_goal(goal_id: str, current_user: User = Depends(get_current_user))
 @api_router.post("/goals/{goal_id}/progress")
 async def update_goal_progress(
     goal_id: str, 
-    progress_data: ProgressUpdate, 
+    progress_data: ProgressUpdateCreate, 
     current_user: User = Depends(get_current_user)
 ):
     """Update goal progress with enhanced activity tracking"""
@@ -1036,7 +1036,7 @@ async def update_goal_progress(
         goal_id=goal_id,
         user_id=current_user.id,
         previous_value=goal["current_value"],
-        new_value=progress_data.progress_value,
+        new_value=progress_data.new_value,
         status=progress_data.status,
         comment=progress_data.comment
     )
@@ -1044,11 +1044,11 @@ async def update_goal_progress(
     await db.progress_updates.insert_one(progress_update.dict())
     
     # Calculate progress percentage
-    progress_percentage = (progress_data.progress_value / goal["target_value"]) * 100
+    progress_percentage = (progress_data.new_value / goal["target_value"]) * 100
     
     # Update goal with new progress and status
     update_data = {
-        "current_value": progress_data.progress_value,
+        "current_value": progress_data.new_value,
         "progress_percentage": min(progress_percentage, 100),
         "status": progress_data.status,
         "last_updated": datetime.utcnow()
@@ -1061,13 +1061,13 @@ async def update_goal_progress(
     activity = ActivityItem(
         type="progress_updated",
         title="Goal Progress Updated",
-        description=f"{status_emoji.get(progress_data.status, '⚪')} {current_user.first_name} updated '{goal['title']}' to {progress_data.progress_value}/{goal['target_value']} {goal['unit']}",
+        description=f"{status_emoji.get(progress_data.status, '⚪')} {current_user.first_name} updated '{goal['title']}' to {progress_data.new_value}/{goal['target_value']} {goal['unit']}",
         user_id=current_user.id,
         user_name=f"{current_user.first_name} {current_user.last_name}",
         goal_id=goal_id,
         goal_title=goal["title"],
         metadata={
-            "progress_value": progress_data.progress_value,
+            "progress_value": progress_data.new_value,
             "target_value": goal["target_value"],
             "status": progress_data.status,
             "previous_status": previous_status,
