@@ -218,7 +218,7 @@ const RegistrationForm = ({ onToggle }) => {
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Join Your Team</h1>
-          <p className="text-gray-600">Create your goal tracking account</p>
+          <p className="text-gray-600">Create your Goal Spark 2.0 account</p>
           <p className="text-sm text-blue-600 mt-2">Use your work email address to register</p>
         </div>
 
