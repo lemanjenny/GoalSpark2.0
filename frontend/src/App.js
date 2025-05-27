@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
+// Enhanced Components
+import EnhancedGoalCards from './components/EnhancedGoalCards';
+import ActivityFeed, { NotificationBadge } from './components/ActivityFeed';
+import EnhancedProgressModal from './components/EnhancedProgressModal';
+import ClickableAnalyticsDashboard from './components/ClickableAnalyticsDashboard';
+
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
