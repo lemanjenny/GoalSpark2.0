@@ -1688,7 +1688,7 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Goal Tracker</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Goal Spark 2.0</h1>
               <p className="text-sm text-gray-600">Welcome back, {user.first_name}!</p>
             </div>
             <div className="flex items-center space-x-4">
