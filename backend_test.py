@@ -92,12 +92,13 @@ class GoalTrackerAPITester:
 
     def test_admin_registration(self):
         """Test admin user registration"""
+        timestamp = datetime.now().strftime('%H%M%S%f')
         admin_data = {
-            "email": "admin@test.com",
+            "email": f"admin_{timestamp}@test.com",
             "password": "password123",
-            "first_name": "John",
-            "last_name": "Manager",
-            "job_title": "Team Lead",
+            "first_name": "Sarah",
+            "last_name": "CEO",
+            "job_title": "Chief Executive Officer",
             "manager_id": None
         }
         
