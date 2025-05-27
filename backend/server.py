@@ -134,11 +134,18 @@ class Goal(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = True
 
+# Enhanced Goal models with comparison logic
+class GoalComparison(str, Enum):
+    GREATER_THAN = "greater_than"
+    LESS_THAN = "less_than"
+    EQUAL_TO = "equal_to"
+
 class GoalCreate(BaseModel):
     title: str
     description: str
     goal_type: GoalType
     target_value: float
+    comparison: GoalComparison = GoalComparison.GREATER_THAN  # Default to greater than
     unit: str
     assigned_to: List[str]
     cycle_type: GoalCycle
