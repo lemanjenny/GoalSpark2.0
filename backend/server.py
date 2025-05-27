@@ -96,6 +96,13 @@ class UserResponse(BaseModel):
     manager_id: Optional[str] = None
     created_at: datetime
 
+class UserInvite(BaseModel):
+    email: str
+    first_name: str
+    last_name: str
+    job_title: str
+    custom_role: Optional[str] = None
+
 class UserUpdate(BaseModel):
     job_title: Optional[str] = None
     custom_role: Optional[str] = None
