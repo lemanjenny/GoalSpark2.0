@@ -600,11 +600,17 @@ class GoalTrackerAPITester:
         goal = self.test_create_goal()
         self.test_employee_create_goal()
         
-        # NEW FEATURE TESTS
+        # NEW FEATURE TESTS - Team Management
+        self.test_get_team_roster()
+        self.test_update_team_member()
+        self.test_get_custom_roles()
+        self.test_role_based_goal_assignment()
+        self.test_employee_team_access_denied()
+        
+        # Progress tracking tests
         self.test_update_progress()
         self.test_get_goal_progress()
         self.test_get_specific_goal()
-        self.test_role_based_assignment()
         
         # Print summary
         print("\n" + "=" * 50)
