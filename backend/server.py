@@ -816,6 +816,25 @@ async def get_custom_roles(admin_user: User = Depends(get_admin_user)):
     
     return [{"role": role, "count": len([m for m in team_members if m.get("custom_role") == role])} for role in sorted(roles)]
 
+# Enhanced Goal Response Model with Comments
+class GoalWithComments(Goal):
+    latest_comment: Optional[str] = None
+    latest_comment_timestamp: Optional[datetime] = None
+    latest_comment_user: Optional[str] = None
+
+# Activity/Notification Models
+class ActivityItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: str  # "goal_created", "progress_updated", "status_changed", etc.
+    title: str
+    description: str
+    user_id: str
+    user_name: str
+    goal_id: Optional[str] = None
+    goal_title: Optional[str] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
 # Goal management routes
 @api_router.post("/goals", response_model=Goal)
 async def create_goal(goal_data: GoalCreate, admin_user: User = Depends(get_admin_user)):
@@ -831,6 +850,20 @@ async def create_goal(goal_data: GoalCreate, admin_user: User = Depends(get_admi
             raise HTTPException(status_code=400, detail=f"User {user_id} not found")
     
     await db.goals.insert_one(goal.dict())
+    
+    # Create activity item for goal creation
+    activity = ActivityItem(
+        type="goal_created",
+        title="New Goal Created",
+        description=f"Goal '{goal.title}' was created and assigned to {len(goal.assigned_to)} team member(s)",
+        user_id=admin_user.id,
+        user_name=f"{admin_user.first_name} {admin_user.last_name}",
+        goal_id=goal.id,
+        goal_title=goal.title,
+        metadata={"assigned_count": len(goal.assigned_to), "cycle_type": goal.cycle_type}
+    )
+    await db.activities.insert_one(activity.dict())
+    
     return goal
 
 @api_router.get("/goals", response_model=List[Goal])
