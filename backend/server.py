@@ -281,6 +281,60 @@ async def get_managers():
     managers = await db.users.find({"role": UserRole.ADMIN, "is_active": True}).to_list(100)
     return [{"id": m["id"], "first_name": m["first_name"], "last_name": m["last_name"], "job_title": m["job_title"]} for m in managers]
 
+@api_router.post("/auth/forgot-password")
+async def forgot_password(request: PasswordResetRequest):
+    """Send password reset token to user's email"""
+    user = await db.users.find_one({"email": request.email})
+    if not user:
+        # Don't reveal if email exists for security
+        return {"message": "If an account with that email exists, a password reset link has been sent."}
+    
+    # Generate reset token (in production, use proper token generation)
+    reset_token = str(uuid.uuid4())
+    reset_expires = datetime.utcnow() + timedelta(hours=1)  # Token expires in 1 hour
+    
+    # Store reset token (in production, use separate password_reset_tokens collection)
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "reset_token": reset_token,
+            "reset_token_expires": reset_expires
+        }}
+    )
+    
+    # TODO: In production, send email with reset link
+    # For demo, return the token (remove in production)
+    return {
+        "message": "If an account with that email exists, a password reset link has been sent.",
+        "demo_reset_token": reset_token,  # Remove in production
+        "demo_instructions": f"Use this token to reset password: {reset_token}"  # Remove in production
+    }
+
+@api_router.post("/auth/reset-password")
+async def reset_password(reset_data: PasswordReset):
+    """Reset user password with valid token"""
+    user = await db.users.find_one({
+        "reset_token": reset_data.token,
+        "reset_token_expires": {"$gt": datetime.utcnow()}
+    })
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    
+    # Update password and clear reset token
+    new_password_hash = get_password_hash(reset_data.new_password)
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "password_hash": new_password_hash
+        }, "$unset": {
+            "reset_token": "",
+            "reset_token_expires": ""
+        }}
+    )
+    
+    return {"message": "Password reset successfully"}
+
 # Dummy data generation
 @api_router.post("/demo/generate-data")
 async def generate_dummy_data(admin_user: User = Depends(get_admin_user)):
