@@ -7,6 +7,7 @@ import EnhancedGoalCards from './components/EnhancedGoalCards';
 import ActivityFeed, { NotificationBadge } from './components/ActivityFeed';
 import EnhancedProgressModal from './components/EnhancedProgressModal';
 import ClickableAnalyticsDashboard from './components/ClickableAnalyticsDashboard';
+import GoalEditModal from './components/GoalEditModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
