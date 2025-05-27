@@ -144,7 +144,7 @@ class GoalTrackerAPITester:
             
         success, response = self.make_request('GET', 'auth/me', token=self.admin_token, expected_status=200)
         
-        if success and 'email' in response and response['email'] == 'admin@test.com':
+        if success and 'email' in response and response['email'] == self.admin_email:
             self.log_test("Protected Route (/auth/me)", True)
             return True
         else:
