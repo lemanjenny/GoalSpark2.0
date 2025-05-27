@@ -170,12 +170,13 @@ class GoalTrackerAPITester:
             self.log_test("Employee Registration", False, "No admin user available for manager_id")
             return False
             
+        timestamp = datetime.now().strftime('%H%M%S%f')
         employee_data = {
-            "email": "employee@test.com",
+            "email": f"employee_{timestamp}@test.com",
             "password": "password123",
-            "first_name": "Jane",
+            "first_name": "John",
             "last_name": "Employee",
-            "job_title": "Sales Rep",
+            "job_title": "Sales Representative",
             "manager_id": self.admin_user['id']
         }
         
