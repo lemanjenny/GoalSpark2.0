@@ -502,18 +502,26 @@ def generate_realistic_comment(status: str, performance_type: str) -> str:
 async def get_analytics_dashboard(admin_user: User = Depends(get_admin_user)):
     """Get comprehensive analytics data for dashboard"""
     
-    # Get all team members
-    team_members = await db.users.find({"manager_id": admin_user.id, "is_active": True}).to_list(100)
+    # Get all team members using the same logic as the team endpoint
+    team_members = await db.users.find({"manager_id": admin_user.id, "is_active": True}).to_list(1000)
+    
+    # If no direct reports, get all employees for debugging/demo purposes
+    if not team_members:
+        all_employees = await db.users.find({"role": UserRole.EMPLOYEE, "is_active": True}).to_list(1000)
+        print(f"DEBUG ANALYTICS: Admin {admin_user.email} has no direct reports, showing all {len(all_employees)} employees")
+        team_members = all_employees
+    
     team_member_ids = [member["id"] for member in team_members]
     
     if not team_member_ids:
         # Return empty analytics if no team members
+        print(f"DEBUG ANALYTICS: No team members found for admin {admin_user.email}")
         return AnalyticsData(
-            team_overview={},
+            team_overview={"total_employees": 0, "total_goals": 0, "active_goals": 0, "completed_goals": 0, "completion_rate": 0, "avg_progress": 0},
             performance_trends=[],
-            goal_completion_stats={},
+            goal_completion_stats={"total": 0, "on_track": 0, "at_risk": 0, "off_track": 0, "on_track_percentage": 0, "at_risk_percentage": 0, "off_track_percentage": 0},
             employee_performance=[],
-            status_distribution={},
+            status_distribution={"on_track": 0, "at_risk": 0, "off_track": 0},
             recent_activities=[]
         )
     
