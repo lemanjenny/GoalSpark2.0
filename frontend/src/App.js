@@ -2154,7 +2154,7 @@ const Dashboard = () => {
 
   const fetchGoals = async () => {
     try {
-      const response = await axios.get(`${API}/goals`);
+      const response = await axios.get(`${API}/goals?include_comments=true`);
       setGoals(response.data);
     } catch (error) {
       console.error('Error fetching goals:', error);
