@@ -1147,17 +1147,24 @@ const EmployeeInviteModal = ({ isOpen, onClose, onEmployeeInvited }) => {
 // Team Management Component
 const TeamPage = ({ onBack }) => {
   const [teamMembers, setTeamMembers] = useState([]);
+  const [filteredMembers, setFilteredMembers] = useState([]);
   const [editingMember, setEditingMember] = useState(null);
   const [editData, setEditData] = useState({ job_title: '', custom_role: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [nameFilter, setNameFilter] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [customRoleFilter, setCustomRoleFilter] = useState('all');
 
   useEffect(() => {
     fetchTeamMembers();
   }, []);
+
+  useEffect(() => {
+    // Apply filters whenever search term, role filter, or team members change
+    applyFilters();
+  }, [searchTerm, roleFilter, customRoleFilter, teamMembers]);
 
   const fetchTeamMembers = async () => {
     try {
@@ -1168,6 +1175,36 @@ const TeamPage = ({ onBack }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyFilters = () => {
+    let filtered = teamMembers;
+
+    // Search filter (name, email, job title)
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(member =>
+        `${member.first_name} ${member.last_name}`.toLowerCase().includes(term) ||
+        member.email.toLowerCase().includes(term) ||
+        member.job_title.toLowerCase().includes(term) ||
+        (member.custom_role && member.custom_role.toLowerCase().includes(term))
+      );
+    }
+
+    // Role filter (admin/employee)
+    if (roleFilter !== 'all') {
+      filtered = filtered.filter(member => member.role === roleFilter);
+    }
+
+    // Custom role filter
+    if (customRoleFilter !== 'all') {
+      filtered = filtered.filter(member => 
+        member.custom_role === customRoleFilter || 
+        (customRoleFilter === 'none' && !member.custom_role)
+      );
+    }
+
+    setFilteredMembers(filtered);
   };
 
   const handleEmployeeInvited = () => {
