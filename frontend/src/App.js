@@ -288,6 +288,9 @@ const RegistrationForm = ({ onToggle }) => {
               required
             >
               <option value="">Choose your direct manager</option>
+              <option value="none" className="font-semibold text-blue-600">
+                I do not have a Manager - I am the Manager
+              </option>
               {managers.map((manager) => (
                 <option key={manager.id} value={manager.id}>
                   {manager.first_name} {manager.last_name} - {manager.job_title}
