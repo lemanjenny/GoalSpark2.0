@@ -272,10 +272,13 @@ async def get_managers():
 async def generate_dummy_data(admin_user: User = Depends(get_admin_user)):
     """Generate realistic dummy data for analytics demonstration"""
     
-    # Check if demo data already exists
-    existing_demo = await db.users.find_one({"email": "testemployee1@demo.com"})
+    # Check if demo data already exists for this admin
+    existing_demo = await db.users.find_one({
+        "email": {"$regex": "^testemployee.*@demo.com$"},
+        "manager_id": admin_user.id
+    })
     if existing_demo:
-        return {"message": "Demo data already exists", "generated": False}
+        return {"message": "Demo data already exists for this admin", "generated": False}
     
     # Create 3 test employees
     test_employees = []
