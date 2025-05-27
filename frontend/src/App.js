@@ -2176,6 +2176,17 @@ const Dashboard = () => {
     setShowProgressModal(true);
   };
 
+  const openEditGoalModal = (goal) => {
+    setSelectedGoal(goal);
+    setShowEditGoalModal(true);
+  };
+
+  const handleGoalUpdated = () => {
+    fetchGoals();
+    setSelectedGoal(null);
+    setShowEditGoalModal(false);
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'on_track': return 'bg-green-100 text-green-800 border-green-200';
