@@ -439,32 +439,127 @@ class GoalTrackerAPITester:
             self.log_test("Get Specific Goal (Admin)", False, f"Response: {response}")
             return False
 
-    def test_role_based_assignment(self):
-        """Test role-based goal assignment functionality"""
-        if not self.admin_token or not self.employee_user:
-            self.log_test("Role-based Assignment", False, "Missing required tokens/users")
+    def test_get_team_roster(self):
+        """Test getting team roster (NEW FEATURE)"""
+        if not self.admin_token:
+            self.log_test("Get Team Roster", False, "No admin token available")
             return False
             
-        # Create a goal assigned to all Sales Representatives
+        success, response = self.make_request('GET', 'team', token=self.admin_token, expected_status=200)
+        
+        if success and isinstance(response, list):
+            self.log_test("Get Team Roster", True, f"Found {len(response)} team members")
+            return True
+        else:
+            self.log_test("Get Team Roster", False, f"Response: {response}")
+            return False
+
+    def test_update_team_member(self):
+        """Test updating team member custom role (NEW FEATURE)"""
+        if not self.admin_token or not self.employee_user:
+            self.log_test("Update Team Member", False, "Missing required tokens/users")
+            return False
+            
+        # Update the employee's custom role
+        update_data = {
+            "job_title": "Senior Sales Representative",
+            "custom_role": "Sales Rep"
+        }
+        
+        success, response = self.make_request(
+            'PUT', 
+            f'team/{self.employee_user["id"]}', 
+            update_data, 
+            token=self.admin_token, 
+            expected_status=200
+        )
+        
+        if success and 'custom_role' in response and response['custom_role'] == 'Sales Rep':
+            self.log_test("Update Team Member", True, f"Updated custom role to: {response['custom_role']}")
+            return True
+        else:
+            self.log_test("Update Team Member", False, f"Response: {response}")
+            return False
+
+    def test_get_custom_roles(self):
+        """Test getting custom roles list (NEW FEATURE)"""
+        if not self.admin_token:
+            self.log_test("Get Custom Roles", False, "No admin token available")
+            return False
+            
+        success, response = self.make_request('GET', 'roles', token=self.admin_token, expected_status=200)
+        
+        if success and isinstance(response, list):
+            self.log_test("Get Custom Roles", True, f"Found {len(response)} custom roles")
+            return True
+        else:
+            self.log_test("Get Custom Roles", False, f"Response: {response}")
+            return False
+
+    def test_role_based_goal_assignment(self):
+        """Test role-based goal assignment endpoint (NEW FEATURE)"""
+        if not self.admin_token or not self.employee_user:
+            self.log_test("Role-based Goal Assignment", False, "Missing required tokens/users")
+            return False
+            
+        # First ensure the employee has a custom role
+        self.test_update_team_member()
+        
+        # Create a goal using role-based assignment
         goal_data = {
-            "title": "Sales Team Revenue Goal",
+            "title": "Sales Rep Revenue Goal",
             "description": "Quarterly revenue target for all sales reps",
             "goal_type": "revenue",
             "target_value": 50000.0,
             "unit": "$",
-            "assigned_to": [self.employee_user['id']],  # In real app, this would be all Sales Reps
+            "assigned_to": [],  # Will be populated by role assignment
             "cycle_type": "quarterly",
             "start_date": datetime.now().isoformat(),
             "end_date": (datetime.now() + timedelta(days=90)).isoformat()
         }
         
-        success, response = self.make_request('POST', 'goals', goal_data, token=self.admin_token, expected_status=200)
+        # Use the role-based assignment endpoint
+        success, response = self.make_request(
+            'POST', 
+            'goals/assign-by-role?role_name=Sales Rep', 
+            goal_data, 
+            token=self.admin_token, 
+            expected_status=200
+        )
         
-        if success and 'id' in response:
-            self.log_test("Role-based Assignment", True, f"Goal assigned to role: {goal_data['title']}")
+        if success and 'goal' in response and 'assigned_count' in response:
+            self.log_test("Role-based Goal Assignment", True, f"Assigned to {response['assigned_count']} members")
             return True
         else:
-            self.log_test("Role-based Assignment", False, f"Response: {response}")
+            self.log_test("Role-based Goal Assignment", False, f"Response: {response}")
+            return False
+
+    def test_employee_team_access_denied(self):
+        """Test employee cannot access team management endpoints"""
+        if not self.employee_token:
+            self.log_test("Employee Team Access Denied", False, "No employee token available")
+            return False
+            
+        # Test team roster access
+        success1, _ = self.make_request('GET', 'team', token=self.employee_token, expected_status=403)
+        
+        # Test team member update access
+        success2, _ = self.make_request(
+            'PUT', 
+            f'team/{self.employee_user["id"]}', 
+            {"custom_role": "Hacker"}, 
+            token=self.employee_token, 
+            expected_status=403
+        )
+        
+        # Test roles access
+        success3, _ = self.make_request('GET', 'roles', token=self.employee_token, expected_status=403)
+        
+        if success1 and success2 and success3:
+            self.log_test("Employee Team Access Denied", True, "All team endpoints properly protected")
+            return True
+        else:
+            self.log_test("Employee Team Access Denied", False, "Some endpoints not properly protected")
             return False
 
     def run_all_tests(self):
