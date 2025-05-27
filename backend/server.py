@@ -866,18 +866,53 @@ async def create_goal(goal_data: GoalCreate, admin_user: User = Depends(get_admi
     
     return goal
 
-@api_router.get("/goals", response_model=List[Goal])
-async def get_goals(current_user: User = Depends(get_current_user)):
+@api_router.get("/goals", response_model=List[GoalWithComments])
+async def get_goals(
+    current_user: User = Depends(get_current_user),
+    status_filter: Optional[str] = None,
+    include_comments: bool = True
+):
+    """Get goals with optional status filtering and latest comments"""
     if current_user.role == UserRole.ADMIN:
         # Admins see all goals for their team
         team_members = await db.users.find({"manager_id": current_user.id}).to_list(100)
         team_member_ids = [member["id"] for member in team_members] + [current_user.id]
-        goals = await db.goals.find({"assigned_to": {"$in": team_member_ids}, "is_active": True}).to_list(100)
+        query = {"assigned_to": {"$in": team_member_ids}, "is_active": True}
     else:
         # Employees see only their goals
-        goals = await db.goals.find({"assigned_to": current_user.id, "is_active": True}).to_list(100)
+        query = {"assigned_to": current_user.id, "is_active": True}
     
-    return [Goal(**goal) for goal in goals]
+    # Add status filter if provided
+    if status_filter and status_filter in ["on_track", "at_risk", "off_track"]:
+        query["status"] = status_filter
+    
+    goals = await db.goals.find(query).to_list(100)
+    
+    # Enhance goals with latest comments if requested
+    enhanced_goals = []
+    for goal in goals:
+        goal_with_comments = GoalWithComments(**goal)
+        
+        if include_comments:
+            # Get latest progress update with comment for this goal
+            latest_progress = await db.progress_updates.find({
+                "goal_id": goal["id"],
+                "comment": {"$ne": None, "$ne": ""}
+            }).sort("timestamp", -1).limit(1).to_list(1)
+            
+            if latest_progress:
+                update = latest_progress[0]
+                goal_with_comments.latest_comment = update.get("comment")
+                goal_with_comments.latest_comment_timestamp = update.get("timestamp")
+                
+                # Get user name for the comment
+                comment_user = await db.users.find_one({"id": update.get("user_id")})
+                if comment_user:
+                    goal_with_comments.latest_comment_user = f"{comment_user['first_name']} {comment_user['last_name']}"
+        
+        enhanced_goals.append(goal_with_comments)
+    
+    return enhanced_goals
 
 @api_router.get("/goals/{goal_id}", response_model=Goal)
 async def get_goal(goal_id: str, current_user: User = Depends(get_current_user)):
