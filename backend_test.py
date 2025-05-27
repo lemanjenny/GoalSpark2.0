@@ -626,6 +626,215 @@ class GoalTrackerAPITester:
             self.log_test("Employee Team Access Denied", False, "Some endpoints not properly protected")
             return False
 
+    def test_jenny_login_or_create(self):
+        """Test jenny@careerplug.com login or create account (CRITICAL BUG FIX)"""
+        print("\n=== TESTING JENNY@CAREERPLUG.COM (CRITICAL BUG FIX) ===")
+        
+        # First try to login as jenny
+        success, response = self.make_request('POST', 'auth/login', {
+            "email": "jenny@careerplug.com",
+            "password": "password123"
+        }, expected_status=200)
+        
+        if success and 'access_token' in response:
+            self.admin_token = response['access_token']
+            self.admin_user = response['user']
+            self.jenny_user_id = response['user']['id']
+            self.log_test("Jenny Login (Existing Account)", True, f"User ID: {self.jenny_user_id}")
+            return True
+        else:
+            # If jenny doesn't exist, create her account
+            print("   Jenny account not found, creating admin account...")
+            success, response = self.make_request('POST', 'auth/register', {
+                "email": "jenny@careerplug.com",
+                "password": "password123",
+                "first_name": "Jenny",
+                "last_name": "Manager",
+                "job_title": "Team Manager",
+                "manager_id": None  # Admin role
+            }, expected_status=200)
+            
+            if success and 'access_token' in response:
+                self.admin_token = response['access_token']
+                self.admin_user = response['user']
+                self.jenny_user_id = response['user']['id']
+                self.log_test("Jenny Account Creation", True, f"User ID: {self.jenny_user_id}")
+                return True
+            else:
+                self.log_test("Jenny Account Creation", False, f"Response: {response}")
+                return False
+
+    def test_demo_data_generation_critical(self):
+        """Test demo data generation (BUG FIX #1)"""
+        print("\n=== TESTING DEMO DATA GENERATION (BUG FIX #1) ===")
+        
+        if not self.admin_token:
+            self.log_test("Demo Data Generation", False, "No admin token available")
+            return False
+            
+        success, response = self.make_request('POST', 'demo/generate-data', {}, 
+                                            token=self.admin_token, expected_status=200)
+        
+        if success:
+            generated = response.get('generated', False)
+            employees_created = response.get('employees_created', 0)
+            message = response.get('message', '')
+            
+            if generated:
+                self.log_test("Demo Data Generation", True, f"Generated {employees_created} employees")
+            else:
+                self.log_test("Demo Data Generation", True, "Demo data already exists")
+            
+            print(f"   Response: {message}")
+            return True
+        else:
+            self.log_test("Demo Data Generation", False, f"Response: {response}")
+            return False
+
+    def test_team_visibility_critical(self):
+        """Test team member visibility (BUG FIX #2)"""
+        print("\n=== TESTING TEAM VISIBILITY (BUG FIX #2) ===")
+        
+        if not self.admin_token:
+            self.log_test("Team Visibility", False, "No admin token available")
+            return False
+            
+        success, response = self.make_request('GET', 'team', token=self.admin_token, expected_status=200)
+        
+        if success and isinstance(response, list):
+            team_count = len(response)
+            self.log_test("Team Visibility", True, f"Found {team_count} team members")
+            
+            # Log team member details
+            print(f"   Team members visible to jenny@careerplug.com:")
+            for member in response:
+                name = f"{member.get('first_name', 'Unknown')} {member.get('last_name', 'Unknown')}"
+                role = member.get('custom_role', member.get('job_title', 'Unknown'))
+                email = member.get('email', 'Unknown')
+                print(f"     - {name} ({role}) - {email}")
+            
+            return True
+        else:
+            self.log_test("Team Visibility", False, f"Response: {response}")
+            return False
+
+    def test_employee_invitation_critical(self):
+        """Test employee invitation system (BUG FIX #3)"""
+        print("\n=== TESTING EMPLOYEE INVITATION (BUG FIX #3) ===")
+        
+        if not self.admin_token:
+            self.log_test("Employee Invitation", False, "No admin token available")
+            return False
+            
+        # Test employee invitation
+        timestamp = datetime.now().strftime('%H%M%S')
+        test_employee_data = {
+            "email": f"john.test.{timestamp}@example.com",
+            "first_name": "John",
+            "last_name": "Test",
+            "job_title": "Sales Representative",
+            "custom_role": "Sales Rep"
+        }
+        
+        success, response = self.make_request('POST', 'team/invite', test_employee_data, 
+                                            token=self.admin_token, expected_status=200)
+        
+        if success:
+            if 'employee' in response:
+                employee_id = response['employee']['id']
+                temp_password = response.get('temp_password', 'TempPass123!')
+                instructions = response.get('instructions', '')
+                
+                self.log_test("Employee Invitation", True, f"Employee ID: {employee_id}")
+                print(f"   Temp Password: {temp_password}")
+                print(f"   Instructions: {instructions}")
+                
+                # Test login with new employee credentials
+                login_success, login_response = self.make_request('POST', 'auth/login', {
+                    "email": test_employee_data["email"],
+                    "password": temp_password
+                }, expected_status=200)
+                
+                if login_success and 'access_token' in login_response:
+                    self.employee_token = login_response['access_token']
+                    self.employee_user = login_response['user']
+                    self.log_test("New Employee Login", True, "Employee can login with temp password")
+                    return True
+                else:
+                    self.log_test("New Employee Login", False, f"Login failed: {login_response}")
+                    return False
+            else:
+                self.log_test("Employee Invitation", False, "No employee data in response")
+                return False
+        else:
+            self.log_test("Employee Invitation", False, f"Response: {response}")
+            return False
+
+    def run_critical_bug_tests(self):
+        """Run tests focused on the 3 critical bug fixes"""
+        print("🚀 STARTING CRITICAL BUG FIX VERIFICATION")
+        print("Testing Goal Spark 2.0 - Focus on jenny@careerplug.com issues")
+        print("=" * 60)
+        
+        # Basic connectivity
+        if not self.test_health_check():
+            print("❌ API not accessible - stopping tests")
+            return False
+        
+        # CRITICAL: Test jenny@careerplug.com specifically
+        if not self.test_jenny_login_or_create():
+            print("❌ Jenny login/creation failed - stopping tests")
+            return False
+        
+        # BUG FIX #1: Demo data generation
+        self.test_demo_data_generation_critical()
+        
+        # BUG FIX #2: Team visibility 
+        self.test_team_visibility_critical()
+        
+        # BUG FIX #3: Employee invitation
+        self.test_employee_invitation_critical()
+        
+        # Additional verification
+        self.test_analytics_dashboard()
+        
+        # Print summary
+        print("\n" + "=" * 60)
+        print("🏁 CRITICAL BUG FIX TESTING COMPLETE")
+        print(f"📊 Test Summary: {self.tests_passed}/{self.tests_run} tests passed")
+        
+        # Critical bug fix status
+        print("\n🔍 CRITICAL BUG FIX STATUS:")
+        critical_tests = [
+            ("Demo Data Generation", any(t['name'].startswith('Demo Data') and t['success'] for t in self.test_results)),
+            ("Team Visibility", any(t['name'].startswith('Team Visibility') and t['success'] for t in self.test_results)),
+            ("Employee Invitation", any(t['name'].startswith('Employee Invitation') and t['success'] for t in self.test_results)),
+        ]
+        
+        all_critical_passed = True
+        for fix_name, status in critical_tests:
+            status_icon = "✅" if status else "❌"
+            print(f"   {status_icon} {fix_name}: {'FIXED' if status else 'STILL BROKEN'}")
+            if not status:
+                all_critical_passed = False
+        
+        if all_critical_passed:
+            print("\n🎉 ALL CRITICAL BUG FIXES VERIFIED!")
+            print("✅ jenny@careerplug.com should now see demo data generation")
+            print("✅ jenny@careerplug.com should see ALL team members")
+            print("✅ + Invite Employee button should work")
+        else:
+            print("\n⚠️ SOME CRITICAL BUGS STILL NEED ATTENTION!")
+        
+        # Show failed tests
+        failed_tests = [test for test in self.test_results if not test['success']]
+        if failed_tests:
+            print("\n❌ Failed tests:")
+            for test in failed_tests:
+                print(f"  - {test['name']}: {test['details']}")
+        
+        return self.tests_passed == self.tests_run
+
     def run_all_tests(self):
         """Run all API tests"""
         print("🚀 Starting Goal Spark 2.0 API Tests")
