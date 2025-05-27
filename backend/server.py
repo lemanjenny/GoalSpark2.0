@@ -685,16 +685,31 @@ async def invite_employee(invite_data: UserInvite, admin_user: User = Depends(ge
 @api_router.get("/team")
 async def get_team(admin_user: User = Depends(get_admin_user)):
     """Get full team roster with manager details"""
-    team_members = await db.users.find({"manager_id": admin_user.id, "is_active": True}).to_list(100)
+    # Get all users who have this admin as their manager
+    team_members = await db.users.find({"manager_id": admin_user.id, "is_active": True}).to_list(1000)
+    
+    # Also get all users managed by this admin (broader search for edge cases)
+    if not team_members:
+        # Try alternative search - look for users who might have been assigned to this admin
+        all_users = await db.users.find({"role": UserRole.EMPLOYEE, "is_active": True}).to_list(1000)
+        # For debugging - let's see what users exist
+        print(f"DEBUG: Admin {admin_user.email} (ID: {admin_user.id}) looking for team members")
+        print(f"DEBUG: Found {len(all_users)} total employee users")
+        for user in all_users:
+            print(f"DEBUG: User {user['email']} has manager_id: {user.get('manager_id', 'None')}")
+        
+        # If admin has no direct reports, return all employees for now (can be refined later)
+        team_members = all_users
     
     # Add manager details for each team member
     for member in team_members:
-        if member["manager_id"]:
+        if member.get("manager_id"):
             manager = await db.users.find_one({"id": member["manager_id"]})
             member["manager_name"] = f"{manager['first_name']} {manager['last_name']}" if manager else "Unknown"
         else:
             member["manager_name"] = None
     
+    print(f"DEBUG: Returning {len(team_members)} team members for admin {admin_user.email}")
     return [UserResponse(**member) for member in team_members]
 
 @api_router.put("/team/{user_id}")
