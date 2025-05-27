@@ -67,6 +67,7 @@ class User(BaseModel):
     last_name: str
     role: UserRole
     job_title: str
+    custom_role: Optional[str] = None  # New field for team role management
     manager_id: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = True
@@ -90,8 +91,13 @@ class UserResponse(BaseModel):
     last_name: str
     role: UserRole
     job_title: str
+    custom_role: Optional[str] = None
     manager_id: Optional[str] = None
     created_at: datetime
+
+class UserUpdate(BaseModel):
+    job_title: Optional[str] = None
+    custom_role: Optional[str] = None
 
 class Goal(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -207,6 +213,7 @@ async def register(user_data: UserCreate):
         last_name=user_data.last_name,
         role=role,
         job_title=user_data.job_title,
+        custom_role=user_data.job_title,  # Default custom_role to job_title
         manager_id=user_data.manager_id
     )
     
@@ -250,6 +257,57 @@ async def get_managers():
     """Get list of managers for employee registration"""
     managers = await db.users.find({"role": UserRole.ADMIN, "is_active": True}).to_list(100)
     return [{"id": m["id"], "first_name": m["first_name"], "last_name": m["last_name"], "job_title": m["job_title"]} for m in managers]
+
+# Team management routes
+@api_router.get("/team")
+async def get_team(admin_user: User = Depends(get_admin_user)):
+    """Get full team roster with manager details"""
+    team_members = await db.users.find({"manager_id": admin_user.id, "is_active": True}).to_list(100)
+    
+    # Add manager details for each team member
+    for member in team_members:
+        if member["manager_id"]:
+            manager = await db.users.find_one({"id": member["manager_id"]})
+            member["manager_name"] = f"{manager['first_name']} {manager['last_name']}" if manager else "Unknown"
+        else:
+            member["manager_name"] = None
+    
+    return [UserResponse(**member) for member in team_members]
+
+@api_router.put("/team/{user_id}")
+async def update_team_member(user_id: str, update_data: UserUpdate, admin_user: User = Depends(get_admin_user)):
+    """Update team member details (job title, custom role)"""
+    # Verify the user is part of the admin's team
+    user = await db.users.find_one({"id": user_id, "manager_id": admin_user.id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Team member not found")
+    
+    # Update user
+    update_fields = {}
+    if update_data.job_title is not None:
+        update_fields["job_title"] = update_data.job_title
+    if update_data.custom_role is not None:
+        update_fields["custom_role"] = update_data.custom_role
+    
+    if update_fields:
+        await db.users.update_one({"id": user_id}, {"$set": update_fields})
+    
+    # Return updated user
+    updated_user = await db.users.find_one({"id": user_id})
+    return UserResponse(**updated_user)
+
+@api_router.get("/roles")
+async def get_custom_roles(admin_user: User = Depends(get_admin_user)):
+    """Get list of custom roles used by team members"""
+    team_members = await db.users.find({"manager_id": admin_user.id, "is_active": True}).to_list(100)
+    
+    # Extract unique custom roles
+    roles = set()
+    for member in team_members:
+        if member.get("custom_role"):
+            roles.add(member["custom_role"])
+    
+    return [{"role": role, "count": len([m for m in team_members if m.get("custom_role") == role])} for role in sorted(roles)]
 
 # Goal management routes
 @api_router.post("/goals", response_model=Goal)
@@ -346,6 +404,34 @@ async def get_team_members(admin_user: User = Depends(get_admin_user)):
     """Get team members for goal assignment"""
     team_members = await db.users.find({"manager_id": admin_user.id, "is_active": True}).to_list(100)
     return [UserResponse(**member) for member in team_members]
+
+@api_router.post("/goals/assign-by-role")
+async def assign_goal_by_role(role_name: str, goal_data: GoalCreate, admin_user: User = Depends(get_admin_user)):
+    """Create and assign goal to all team members with specified custom role"""
+    # Find all team members with the specified custom role
+    team_members = await db.users.find({
+        "manager_id": admin_user.id, 
+        "custom_role": role_name, 
+        "is_active": True
+    }).to_list(100)
+    
+    if not team_members:
+        raise HTTPException(status_code=400, detail=f"No team members found with role: {role_name}")
+    
+    # Set assigned_to to all users with this role
+    goal_data.assigned_to = [member["id"] for member in team_members]
+    
+    goal = Goal(
+        **goal_data.dict(),
+        assigned_by=admin_user.id
+    )
+    
+    await db.goals.insert_one(goal.dict())
+    return {
+        "goal": goal,
+        "assigned_count": len(team_members),
+        "assigned_to": [f"{m['first_name']} {m['last_name']}" for m in team_members]
+    }
 
 # Include the router in the main app
 app.include_router(api_router)
