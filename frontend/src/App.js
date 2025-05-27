@@ -303,6 +303,16 @@ const RegistrationForm = ({ onToggle }) => {
                 </option>
               ))}
             </select>
+            {formData.manager_id === "none" && (
+              <p className="mt-1 text-sm text-blue-600">
+                ✓ You will be registered as a Manager with admin privileges
+              </p>
+            )}
+            {formData.manager_id && formData.manager_id !== "none" && (
+              <p className="mt-1 text-sm text-green-600">
+                ✓ You will be registered as an Employee under the selected manager
+              </p>
+            )}
           </div>
 
           {error && (
