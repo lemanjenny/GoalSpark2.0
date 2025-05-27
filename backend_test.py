@@ -628,7 +628,7 @@ class GoalTrackerAPITester:
 
     def run_all_tests(self):
         """Run all API tests"""
-        print("🚀 Starting Goal Tracker API Tests")
+        print("🚀 Starting Goal Spark 2.0 API Tests")
         print("=" * 50)
         
         # Basic API tests
