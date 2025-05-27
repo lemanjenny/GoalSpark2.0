@@ -321,8 +321,22 @@ const LoginForm = ({ onToggle }) => {
               Sign up
             </button>
           </p>
+          <p className="text-gray-600 mt-2">
+            <button
+              onClick={() => setShowForgotPassword(true)}
+              className="text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Forgot your password?
+            </button>
+          </p>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
     </div>
   );
 };
