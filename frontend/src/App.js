@@ -473,6 +473,7 @@ const AnalyticsDashboard = ({ onBack }) => {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [demoDataGenerated, setDemoDataGenerated] = useState(false);
+  const [showDemoOption, setShowDemoOption] = useState(true); // Always show demo option initially
 
   useEffect(() => {
     fetchAnalyticsData();
@@ -483,13 +484,17 @@ const AnalyticsDashboard = ({ onBack }) => {
       const response = await axios.get(`${API}/analytics/dashboard`);
       setAnalyticsData(response.data);
       
-      // Check if we have meaningful data
+      // Check if we have meaningful data - if so, hide demo option
       if (response.data && response.data.team_overview && response.data.team_overview.total_employees > 0) {
         setDemoDataGenerated(true);
+        setShowDemoOption(false); // Hide demo option if real data exists
+      } else {
+        setShowDemoOption(true); // Show demo option if no meaningful data
       }
     } catch (error) {
       console.error('Error fetching analytics data:', error);
       setAnalyticsData({ team_overview: { total_employees: 0 }, performance_trends: [], goal_completion_stats: {}, employee_performance: [], status_distribution: {}, recent_activities: [] });
+      setShowDemoOption(true); // Show demo option on error
     } finally {
       setLoading(false);
     }
@@ -501,6 +506,12 @@ const AnalyticsDashboard = ({ onBack }) => {
       const response = await axios.post(`${API}/demo/generate-data`);
       if (response.data.generated) {
         setDemoDataGenerated(true);
+        setShowDemoOption(false);
+        await fetchAnalyticsData();
+      } else {
+        // Demo data already exists
+        setDemoDataGenerated(true);
+        setShowDemoOption(false);
         await fetchAnalyticsData();
       }
     } catch (error) {
