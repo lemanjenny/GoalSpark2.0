@@ -821,10 +821,6 @@ class GoalWithComments(Goal):
     latest_comment: Optional[str] = None
     latest_comment_timestamp: Optional[datetime] = None
     latest_comment_user: Optional[str] = None
-class GoalWithComments(Goal):
-    latest_comment: Optional[str] = None
-    latest_comment_timestamp: Optional[datetime] = None
-    latest_comment_user: Optional[str] = None
 
 # Activity/Notification Models
 class ActivityItem(BaseModel):
