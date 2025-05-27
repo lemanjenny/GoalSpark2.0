@@ -22,7 +22,9 @@ load_dotenv(ROOT_DIR / '.env')
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# Extract DB name from MONGO_URL
+db_name = mongo_url.split('/')[-1]
+db = client[db_name]
 
 # Security
 SECRET_KEY = "your-secret-key-change-in-production"
