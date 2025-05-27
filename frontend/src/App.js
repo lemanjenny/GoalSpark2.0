@@ -508,13 +508,24 @@ const AnalyticsDashboard = ({ onBack }) => {
   };
 
   const generateDemoData = async () => {
+    console.log('Generate Demo Data button clicked');
     setLoading(true);
+    
     try {
+      console.log('Calling demo data API...');
       const response = await axios.post(`${API}/demo/generate-data`);
       console.log('Demo data response:', response.data);
-      await fetchAnalyticsData(); // Refresh data
+      
+      // Force hide the demo button and refresh data
+      setShowDemoDataButton(false);
+      await fetchAnalyticsData();
+      
+      // Show success message (optional)
+      alert(`Demo data generated successfully! ${response.data.message}`);
+      
     } catch (error) {
       console.error('Error generating demo data:', error);
+      alert('Error generating demo data. Please try again.');
     } finally {
       setLoading(false);
     }
