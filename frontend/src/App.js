@@ -2479,6 +2479,16 @@ const Dashboard = () => {
         goal={selectedGoal}
         onProgressUpdated={handleProgressUpdated}
       />
+
+      {/* Goal Edit Modal */}
+      {showEditGoalModal && selectedGoal && (
+        <GoalEditModal
+          isOpen={showEditGoalModal}
+          onClose={() => setShowEditGoalModal(false)}
+          goal={selectedGoal}
+          onGoalUpdated={handleGoalUpdated}
+        />
+      )}
     </div>
   );
 };
