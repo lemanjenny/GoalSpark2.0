@@ -302,18 +302,36 @@ async def forgot_password(request: PasswordResetRequest):
     """Send password reset token to user's email"""
     user = await db.users.find_one({"email": request.email})
     
-    # Always generate a demo reset URL for testing purposes
-    demo_reset_token = str(uuid.uuid4())
-    demo_reset_url = f"https://a57f031a-35f2-4808-be33-a7b5e2b52483.preview.emergentagent.com/reset-password?token={demo_reset_token}"
-    
     if not user:
-        # For security, don't reveal if email exists, but provide demo info for testing
+        # For non-existent users, create a demo token that can be used for testing
+        demo_reset_token = str(uuid.uuid4())
+        demo_reset_url = f"https://a57f031a-35f2-4808-be33-a7b5e2b52483.preview.emergentagent.com/reset-password?token={demo_reset_token}"
+        
+        # Create a temporary demo user entry for password reset testing
+        demo_user = {
+            "id": str(uuid.uuid4()),
+            "email": request.email,
+            "first_name": "Demo",
+            "last_name": "User",
+            "password_hash": pwd_context.hash("demopassword123"),  # Default demo password
+            "role": "employee",
+            "is_demo": True,
+            "reset_token": demo_reset_token,
+            "reset_token_expires": datetime.utcnow() + timedelta(hours=1),
+            "created_at": datetime.utcnow()
+        }
+        
+        # Store demo user with reset token
+        await db.users.insert_one(demo_user)
+        
         return {
             "message": "If an account with that email exists, a password reset link has been sent.",
             "demo_mode": True,
-            "demo_note": "This email doesn't exist in the system, but here's a demo reset URL for testing",
+            "demo_note": "Demo user created! You can reset the password and then login with the new password.",
             "demo_reset_url": demo_reset_url,
-            "demo_instructions": f"Since this email doesn't exist, here's a demo URL for testing: {demo_reset_url}"
+            "demo_instructions": f"Demo user created for {request.email}. Use this URL to set a password, then login: {demo_reset_url}",
+            "demo_email": request.email,
+            "demo_default_password": "demopassword123"
         }
     
     # Generate secure reset token for real user
