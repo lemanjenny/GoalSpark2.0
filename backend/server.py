@@ -286,7 +286,7 @@ async def generate_dummy_data(admin_user: User = Depends(get_admin_user)):
         {
             "first_name": "Test Employee",
             "last_name": "1",
-            "email": "testemployee1@demo.com",
+            "email": f"testemployee1_{admin_user.id}@demo.com",
             "job_title": "Sales Representative",
             "custom_role": "Sales Rep",
             "performance_type": "high"  # High performer
@@ -294,7 +294,7 @@ async def generate_dummy_data(admin_user: User = Depends(get_admin_user)):
         {
             "first_name": "Test Employee", 
             "last_name": "2",
-            "email": "testemployee2@demo.com",
+            "email": f"testemployee2_{admin_user.id}@demo.com",
             "job_title": "Marketing Specialist",
             "custom_role": "Marketing",
             "performance_type": "average"  # Average performer
@@ -302,7 +302,7 @@ async def generate_dummy_data(admin_user: User = Depends(get_admin_user)):
         {
             "first_name": "Test Employee",
             "last_name": "3", 
-            "email": "testemployee3@demo.com",
+            "email": f"testemployee3_{admin_user.id}@demo.com",
             "job_title": "Customer Support",
             "custom_role": "Support",
             "performance_type": "struggling"  # Needs improvement
