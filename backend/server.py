@@ -963,7 +963,61 @@ async def fix_jenny_role():
     if result.matched_count == 0:
         return {"message": "jenny@careerplug.com not found in database"}
     
-    return {"message": "jenny@careerplug.com role updated to admin", "modified": result.modified_count > 0}
+# Restore missing CareerPlug users
+@api_router.post("/admin/restore-careerplug-users")
+async def restore_careerplug_users():
+    """Restore Kelly Gull and Clint Smith user accounts"""
+    
+    # Check if users already exist
+    kelly = await db.users.find_one({"email": "legal@careerplug.com"})
+    clint = await db.users.find_one({"email": "clint@careerplug.com"})
+    
+    restored_users = []
+    
+    # Restore Kelly Gull
+    if not kelly:
+        kelly_user = {
+            "id": str(uuid.uuid4()),
+            "email": "legal@careerplug.com",
+            "first_name": "Kelly",
+            "last_name": "Gull",
+            "job_title": "Legal Counsel",
+            "password_hash": pwd_context.hash("password123"),  # Default password
+            "role": "employee",
+            "is_active": True,
+            "manager_id": None,  # Can be updated later
+            "custom_role": "Legal",
+            "created_at": datetime.utcnow()
+        }
+        await db.users.insert_one(kelly_user)
+        restored_users.append("Kelly Gull (legal@careerplug.com)")
+    
+    # Restore Clint Smith  
+    if not clint:
+        clint_user = {
+            "id": str(uuid.uuid4()),
+            "email": "clint@careerplug.com",
+            "first_name": "Clint",
+            "last_name": "Smith",
+            "job_title": "Operations Manager",
+            "password_hash": pwd_context.hash("password123"),  # Default password
+            "role": "employee", 
+            "is_active": True,
+            "manager_id": None,  # Can be updated later
+            "custom_role": "Operations",
+            "created_at": datetime.utcnow()
+        }
+        await db.users.insert_one(clint_user)
+        restored_users.append("Clint Smith (clint@careerplug.com)")
+    
+    if not restored_users:
+        return {"message": "Users already exist - no restoration needed"}
+    
+    return {
+        "message": f"Successfully restored {len(restored_users)} user(s)",
+        "restored_users": restored_users,
+        "login_instructions": "Both users can login with password: password123"
+    }
 
 # Team management routes
 @api_router.get("/team")
