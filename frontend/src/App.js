@@ -1550,6 +1550,7 @@ const GoalCreationModal = ({ isOpen, onClose, onGoalCreated }) => {
     description: '',
     goal_type: 'target',
     target_value: '',
+    comparison: 'greater_than',
     unit: '',
     cycle_type: 'monthly',
     start_date: '',
