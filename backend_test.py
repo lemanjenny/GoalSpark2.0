@@ -72,7 +72,7 @@ class GoalTrackerAPITester:
         """Test API health check endpoint"""
         success, response = self.make_request('GET', '', expected_status=200)
         
-        if success and response.get('message') == 'Goal Tracker API is running!':
+        if success and response.get('message') == 'Goal Spark 2.0 API is running!':
             self.log_test("API Health Check", True)
             return True
         else:
