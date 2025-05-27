@@ -816,20 +816,11 @@ async def get_custom_roles(admin_user: User = Depends(get_admin_user)):
     
     return [{"role": role, "count": len([m for m in team_members if m.get("custom_role") == role])} for role in sorted(roles)]
 
-# Activity/Notification Models
-class ActivityItem(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    type: str  # "goal_created", "progress_updated", "status_changed", etc.
-    title: str
-    description: str
-    user_id: str
-    user_name: str
-    goal_id: Optional[str] = None
-    goal_title: Optional[str] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-
 # Enhanced Goal Response Model with Comments
+class GoalWithComments(Goal):
+    latest_comment: Optional[str] = None
+    latest_comment_timestamp: Optional[datetime] = None
+    latest_comment_user: Optional[str] = None
 class GoalWithComments(Goal):
     latest_comment: Optional[str] = None
     latest_comment_timestamp: Optional[datetime] = None
