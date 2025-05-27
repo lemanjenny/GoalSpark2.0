@@ -128,6 +128,7 @@ class Goal(BaseModel):
     description: str
     goal_type: GoalType
     target_value: float
+    comparison: GoalComparison = GoalComparison.GREATER_THAN
     current_value: float = 0.0
     unit: str  # e.g., "calls", "$", "%", "units"
     assigned_to: List[str]  # user IDs
