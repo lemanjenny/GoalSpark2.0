@@ -313,8 +313,10 @@ async def forgot_password(request: PasswordResetRequest):
             "email": request.email,
             "first_name": "Demo",
             "last_name": "User",
+            "job_title": "Demo Employee",
             "password_hash": pwd_context.hash("demopassword123"),  # Default demo password
             "role": "employee",
+            "is_active": True,
             "is_demo": True,
             "reset_token": demo_reset_token,
             "reset_token_expires": datetime.utcnow() + timedelta(hours=1),
