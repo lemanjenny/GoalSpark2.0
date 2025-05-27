@@ -249,6 +249,7 @@ const LoginForm = ({ onToggle }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { login } = React.useContext(AuthContext);
 
   const handleSubmit = async (e) => {
