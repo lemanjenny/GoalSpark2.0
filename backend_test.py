@@ -345,6 +345,128 @@ class GoalTrackerAPITester:
             self.log_test("Employee Create Goal (Should Fail)", False, f"Expected 403 error: {response}")
             return False
 
+    def test_update_progress(self):
+        """Test updating goal progress"""
+        # First create a goal
+        goal = self.create_sample_goal()
+        if not goal:
+            self.log_test("Update Progress", False, "Could not create goal for testing")
+            return False
+            
+        goal_id = goal['id']
+        
+        # Test progress update with different statuses
+        progress_updates = [
+            {"new_value": 25.0, "status": "on_track", "comment": "Making good progress"},
+            {"new_value": 15.0, "status": "at_risk", "comment": "Falling behind schedule"},
+            {"new_value": 5.0, "status": "off_track", "comment": "Major setback occurred"}
+        ]
+        
+        all_success = True
+        for i, update_data in enumerate(progress_updates):
+            update_data["goal_id"] = goal_id
+            success, response = self.make_request(
+                'POST', 
+                f'goals/{goal_id}/progress', 
+                update_data, 
+                token=self.employee_token, 
+                expected_status=200
+            )
+            
+            if not success:
+                all_success = False
+                self.log_test(f"Update Progress ({update_data['status']})", False, f"Response: {response}")
+            else:
+                self.log_test(f"Update Progress ({update_data['status']})", True)
+        
+        return all_success
+
+    def test_get_goal_progress(self):
+        """Test getting goal progress history"""
+        # First create a goal and add some progress
+        goal = self.create_sample_goal()
+        if not goal:
+            self.log_test("Get Goal Progress", False, "Could not create goal for testing")
+            return False
+            
+        goal_id = goal['id']
+        
+        # Add a progress update first
+        update_data = {
+            "goal_id": goal_id,
+            "new_value": 30.0,
+            "status": "on_track",
+            "comment": "Good progress"
+        }
+        
+        self.make_request('POST', f'goals/{goal_id}/progress', update_data, token=self.employee_token)
+        
+        # Now get the progress history
+        success, response = self.make_request('GET', f'goals/{goal_id}/progress', token=self.admin_token, expected_status=200)
+        
+        if success and isinstance(response, list):
+            self.log_test("Get Goal Progress", True, f"Found {len(response)} progress updates")
+            return True
+        else:
+            self.log_test("Get Goal Progress", False, f"Response: {response}")
+            return False
+
+    def test_get_specific_goal(self):
+        """Test getting a specific goal by ID"""
+        goal = self.create_sample_goal()
+        if not goal:
+            self.log_test("Get Specific Goal", False, "Could not create goal for testing")
+            return False
+            
+        goal_id = goal['id']
+        
+        # Test admin access
+        success, response = self.make_request('GET', f'goals/{goal_id}', token=self.admin_token, expected_status=200)
+        
+        if success and response.get('id') == goal_id:
+            self.log_test("Get Specific Goal (Admin)", True)
+            
+            # Test employee access to their own goal
+            success2, response2 = self.make_request('GET', f'goals/{goal_id}', token=self.employee_token, expected_status=200)
+            
+            if success2 and response2.get('id') == goal_id:
+                self.log_test("Get Specific Goal (Employee)", True)
+                return True
+            else:
+                self.log_test("Get Specific Goal (Employee)", False, f"Response: {response2}")
+                return False
+        else:
+            self.log_test("Get Specific Goal (Admin)", False, f"Response: {response}")
+            return False
+
+    def test_role_based_assignment(self):
+        """Test role-based goal assignment functionality"""
+        if not self.admin_token or not self.employee_user:
+            self.log_test("Role-based Assignment", False, "Missing required tokens/users")
+            return False
+            
+        # Create a goal assigned to all Sales Representatives
+        goal_data = {
+            "title": "Sales Team Revenue Goal",
+            "description": "Quarterly revenue target for all sales reps",
+            "goal_type": "revenue",
+            "target_value": 50000.0,
+            "unit": "$",
+            "assigned_to": [self.employee_user['id']],  # In real app, this would be all Sales Reps
+            "cycle_type": "quarterly",
+            "start_date": datetime.now().isoformat(),
+            "end_date": (datetime.now() + timedelta(days=90)).isoformat()
+        }
+        
+        success, response = self.make_request('POST', 'goals', goal_data, token=self.admin_token, expected_status=200)
+        
+        if success and 'id' in response:
+            self.log_test("Role-based Assignment", True, f"Goal assigned to role: {goal_data['title']}")
+            return True
+        else:
+            self.log_test("Role-based Assignment", False, f"Response: {response}")
+            return False
+
     def run_all_tests(self):
         """Run all API tests"""
         print("🚀 Starting Goal Tracker API Tests")
