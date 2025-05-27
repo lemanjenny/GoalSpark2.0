@@ -346,6 +346,433 @@ const RegistrationForm = ({ onToggle }) => {
   );
 };
 
+// Simple Chart Components (using CSS for visual representation)
+const BarChart = ({ data, title }) => {
+  const maxValue = Math.max(...data.map(d => d.value));
+  
+  return (
+    <div className="bg-white p-6 rounded-lg shadow">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+      <div className="space-y-3">
+        {data.map((item, index) => (
+          <div key={index} className="flex items-center">
+            <div className="w-20 text-sm text-gray-600 text-right mr-3">
+              {item.label}
+            </div>
+            <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
+              <div 
+                className="bg-blue-500 h-6 rounded-full transition-all duration-500"
+                style={{ width: `${(item.value / maxValue) * 100}%` }}
+              ></div>
+              <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
+                {item.value}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const LineChart = ({ data, title }) => {
+  const maxValue = Math.max(...data.map(d => d.value));
+  const points = data.map((item, index) => {
+    const x = (index / (data.length - 1)) * 100;
+    const y = 100 - ((item.value / maxValue) * 80);
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+      <div className="relative">
+        <svg className="w-full h-40" viewBox="0 0 100 100">
+          <polyline
+            fill="none"
+            stroke="#3B82F6"
+            strokeWidth="2"
+            points={points}
+          />
+          {data.map((item, index) => {
+            const x = (index / (data.length - 1)) * 100;
+            const y = 100 - ((item.value / maxValue) * 80);
+            return (
+              <circle
+                key={index}
+                cx={x}
+                cy={y}
+                r="3"
+                fill="#3B82F6"
+              />
+            );
+          })}
+        </svg>
+        <div className="flex justify-between mt-2 text-xs text-gray-600">
+          {data.map((item, index) => (
+            <span key={index}>{item.label}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PieChart = ({ data, title }) => {
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  let cumulativePercentage = 0;
+
+  const colors = ['#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#8B5CF6'];
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+      <div className="flex items-center justify-center">
+        <svg className="w-32 h-32" viewBox="0 0 42 42">
+          <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#E5E7EB" strokeWidth="3"/>
+          {data.map((item, index) => {
+            const percentage = (item.value / total) * 100;
+            const strokeDasharray = `${percentage} ${100 - percentage}`;
+            const strokeDashoffset = -cumulativePercentage;
+            cumulativePercentage += percentage;
+            
+            return (
+              <circle
+                key={index}
+                cx="21"
+                cy="21"
+                r="15.915"
+                fill="transparent"
+                stroke={colors[index % colors.length]}
+                strokeWidth="3"
+                strokeDasharray={strokeDasharray}
+                strokeDashoffset={strokeDashoffset}
+                transform="rotate(-90 21 21)"
+              />
+            );
+          })}
+        </svg>
+        <div className="ml-6 space-y-2">
+          {data.map((item, index) => (
+            <div key={index} className="flex items-center text-sm">
+              <div 
+                className="w-3 h-3 rounded mr-2" 
+                style={{ backgroundColor: colors[index % colors.length] }}
+              ></div>
+              <span className="text-gray-600">{item.label}: {item.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Analytics Dashboard Component
+const AnalyticsDashboard = ({ onBack }) => {
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [demoDataGenerated, setDemoDataGenerated] = useState(false);
+
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, []);
+
+  const fetchAnalyticsData = async () => {
+    try {
+      const response = await axios.get(`${API}/analytics/dashboard`);
+      setAnalyticsData(response.data);
+      
+      // Check if we have meaningful data
+      if (response.data.team_overview.total_employees > 0) {
+        setDemoDataGenerated(true);
+      }
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateDemoData = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API}/demo/generate-data`);
+      if (response.data.generated) {
+        setDemoDataGenerated(true);
+        await fetchAnalyticsData();
+      }
+    } catch (error) {
+      console.error('Error generating demo data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!demoDataGenerated || !analyticsData || analyticsData.team_overview.total_employees === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={onBack}
+                  className="text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+                >
+                  <span>←</span>
+                  <span>Back to Dashboard</span>
+                </button>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h1>
+                  <p className="text-sm text-gray-600">Performance insights and reporting</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <div className="text-gray-400 mb-4">
+              <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Analytics Data Available</h3>
+            <p className="text-gray-600 mb-6">
+              Generate demo data to see the powerful analytics capabilities of the Goal Tracker system.
+            </p>
+            <button
+              onClick={generateDemoData}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-medium"
+            >
+              Generate Demo Data
+            </button>
+            <div className="mt-4 text-sm text-gray-500">
+              This will create 3 test employees with 4 months of realistic goal tracking history
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const { team_overview, performance_trends, goal_completion_stats, employee_performance, status_distribution, recent_activities } = analyticsData;
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={onBack}
+                className="text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+              >
+                <span>←</span>
+                <span>Back to Dashboard</span>
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h1>
+                <p className="text-sm text-gray-600">Performance insights and reporting</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Key Metrics Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM9 9a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-2xl font-bold text-gray-900">{team_overview.total_employees}</p>
+                <p className="text-gray-600">Team Members</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-2xl font-bold text-gray-900">{team_overview.completion_rate}%</p>
+                <p className="text-gray-600">Completion Rate</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-2xl font-bold text-gray-900">{team_overview.active_goals}</p>
+                <p className="text-gray-600">Active Goals</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <svg className="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-2xl font-bold text-gray-900">{team_overview.avg_progress}%</p>
+                <p className="text-gray-600">Avg Progress</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Performance Trends */}
+          <LineChart
+            title="Performance Trends (4 Months)"
+            data={performance_trends.map(trend => ({
+              label: trend.month.split(' ')[0].slice(0, 3),
+              value: trend.completion_rate
+            }))}
+          />
+
+          {/* Status Distribution */}
+          <PieChart
+            title="Goal Status Distribution"
+            data={[
+              { label: 'On Track', value: status_distribution.on_track },
+              { label: 'At Risk', value: status_distribution.at_risk },
+              { label: 'Off Track', value: status_distribution.off_track }
+            ]}
+          />
+        </div>
+
+        {/* Employee Performance */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <BarChart
+            title="Employee Performance Scores"
+            data={employee_performance.map(emp => ({
+              label: emp.name.split(' ').slice(-1)[0], // Last name
+              value: emp.performance_score
+            }))}
+          />
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Employee Performance Details</h3>
+            <div className="space-y-4">
+              {employee_performance.map((employee, index) => (
+                <div key={index} className="border-b border-gray-200 pb-4 last:border-b-0 last:pb-0">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 className="font-medium text-gray-900">{employee.name}</h4>
+                      <p className="text-sm text-gray-600">{employee.role}</p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      employee.performance_score >= 80 ? 'bg-green-100 text-green-800' :
+                      employee.performance_score >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {employee.performance_score.toFixed(0)} Score
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Goals:</span> {employee.total_goals}
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Completed:</span> {employee.completed_goals}
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Progress:</span> {employee.avg_progress}%
+                    </div>
+                  </div>
+                  <div className="flex space-x-4 mt-2 text-xs">
+                    <span className="text-green-600">🟢 {employee.status_distribution.on_track}</span>
+                    <span className="text-yellow-600">🟡 {employee.status_distribution.at_risk}</span>
+                    <span className="text-red-600">🔴 {employee.status_distribution.off_track}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Activities */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Recent Activities</h3>
+          </div>
+          <div className="divide-y divide-gray-200">
+            {recent_activities.map((activity, index) => (
+              <div key={index} className="px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {activity.employee_name} updated "{activity.goal_title}"
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Progress: {activity.progress_value} / {activity.target_value} {activity.unit}
+                    </p>
+                    {activity.comment && (
+                      <p className="text-sm text-gray-500 italic mt-1">"{activity.comment}"</p>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      activity.status === 'on_track' ? 'bg-green-100 text-green-800' :
+                      activity.status === 'at_risk' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {activity.status === 'on_track' ? '🟢 On Track' :
+                       activity.status === 'at_risk' ? '🟡 At Risk' : '🔴 Off Track'}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {new Date(activity.timestamp).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+// Continue with rest of components...
+// [The rest of the components remain the same - TeamPage, GoalCreationModal, ProgressUpdateModal, Dashboard]
+
 // Team Management Component
 const TeamPage = ({ onBack }) => {
   const [teamMembers, setTeamMembers] = useState([]);
@@ -947,7 +1374,7 @@ const GoalCreationModal = ({ isOpen, onClose, onGoalCreated }) => {
   );
 };
 
-// Progress Update Modal (same as before)
+// Progress Update Modal (same as before, unchanged)
 const ProgressUpdateModal = ({ isOpen, onClose, goal, onProgressUpdated }) => {
   const [formData, setFormData] = useState({
     new_value: '',
@@ -1150,6 +1577,7 @@ const Dashboard = () => {
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [showTeamPage, setShowTeamPage] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [refreshInterval, setRefreshInterval] = useState(null);
 
@@ -1232,6 +1660,10 @@ const Dashboard = () => {
     return { onTrack, atRisk, offTrack };
   };
 
+  if (showAnalytics) {
+    return <AnalyticsDashboard onBack={() => setShowAnalytics(false)} />;
+  }
+
   if (showTeamPage) {
     return <TeamPage onBack={() => setShowTeamPage(false)} />;
   }
@@ -1269,6 +1701,13 @@ const Dashboard = () => {
               </span>
               {user.role === 'admin' && (
                 <>
+                  <button
+                    onClick={() => setShowAnalytics(true)}
+                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition duration-200 flex items-center space-x-2"
+                  >
+                    <span>📊</span>
+                    <span>Analytics</span>
+                  </button>
                   <button
                     onClick={() => setShowTeamPage(true)}
                     className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200 flex items-center space-x-2"
