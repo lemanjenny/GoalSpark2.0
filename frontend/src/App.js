@@ -196,7 +196,13 @@ const RegistrationForm = ({ onToggle }) => {
     setLoading(true);
     setError('');
 
-    const result = await register(formData);
+    // Convert "none" to null for manager_id to indicate admin role
+    const submitData = {
+      ...formData,
+      manager_id: formData.manager_id === "none" ? null : formData.manager_id || null
+    };
+
+    const result = await register(submitData);
     if (!result.success) {
       setError(result.error);
     }
