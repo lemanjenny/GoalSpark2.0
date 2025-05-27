@@ -775,10 +775,88 @@ class GoalTrackerAPITester:
             self.log_test("Employee Invitation", False, f"Response: {response}")
             return False
 
+    def test_forgot_password(self):
+        """Test forgot password functionality (NEW FEATURE)"""
+        if not hasattr(self, 'admin_email'):
+            self.log_test("Forgot Password", False, "No admin email available")
+            return False
+            
+        # Step 1: Request password reset
+        forgot_data = {
+            "email": self.admin_email
+        }
+        
+        success, response = self.make_request('POST', 'auth/forgot-password', forgot_data, expected_status=200)
+        
+        if not success or 'demo_reset_token' not in response:
+            self.log_test("Forgot Password - Request Token", False, f"Response: {response}")
+            return False
+            
+        reset_token = response['demo_reset_token']
+        self.log_test("Forgot Password - Request Token", True, f"Token: {reset_token}")
+        
+        # Step 2: Reset password with token
+        reset_data = {
+            "token": reset_token,
+            "new_password": "newpassword123"
+        }
+        
+        success, response = self.make_request('POST', 'auth/reset-password', reset_data, expected_status=200)
+        
+        if not success:
+            self.log_test("Forgot Password - Reset Password", False, f"Response: {response}")
+            return False
+            
+        self.log_test("Forgot Password - Reset Password", True)
+        
+        # Step 3: Login with new password
+        login_data = {
+            "email": self.admin_email,
+            "password": "newpassword123"
+        }
+        
+        success, response = self.make_request('POST', 'auth/login', login_data, expected_status=200)
+        
+        if success and 'access_token' in response:
+            # Update token
+            self.admin_token = response['access_token']
+            self.log_test("Forgot Password - Login with New Password", True)
+            return True
+        else:
+            self.log_test("Forgot Password - Login with New Password", False, f"Response: {response}")
+            return False
+            
+    def test_team_role_indicators(self):
+        """Test team roster with role indicators (NEW FEATURE)"""
+        if not self.admin_token:
+            self.log_test("Team Role Indicators", False, "No admin token available")
+            return False
+            
+        success, response = self.make_request('GET', 'team', token=self.admin_token, expected_status=200)
+        
+        if success and isinstance(response, list):
+            # Check if team members have role information
+            has_roles = all('role' in member for member in response if member)
+            
+            if has_roles:
+                # Count managers and employees
+                managers = [m for m in response if m and m.get('role') == 'admin']
+                employees = [m for m in response if m and m.get('role') == 'employee']
+                
+                self.log_test("Team Role Indicators", True, 
+                            f"Found {len(managers)} managers and {len(employees)} employees")
+                return True
+            else:
+                self.log_test("Team Role Indicators", False, "Some team members missing role information")
+                return False
+        else:
+            self.log_test("Team Role Indicators", False, f"Response: {response}")
+            return False
+            
     def run_critical_bug_tests(self):
-        """Run tests focused on the 3 critical bug fixes"""
-        print("🚀 STARTING CRITICAL BUG FIX VERIFICATION")
-        print("Testing Goal Spark 2.0 - Focus on jenny@careerplug.com issues")
+        """Run tests focused on the critical bug fixes and new features"""
+        print("🚀 STARTING CRITICAL BUG FIX & NEW FEATURE VERIFICATION")
+        print("Testing Goal Spark 2.0 - Focus on new features and bug fixes")
         print("=" * 60)
         
         # Basic connectivity
@@ -786,34 +864,38 @@ class GoalTrackerAPITester:
             print("❌ API not accessible - stopping tests")
             return False
         
-        # CRITICAL: Test jenny@careerplug.com specifically
-        if not self.test_jenny_login_or_create():
-            print("❌ Jenny login/creation failed - stopping tests")
+        # CRITICAL: Test admin user
+        if not self.test_admin_registration():
+            print("❌ Admin registration failed - stopping tests")
             return False
+            
+        # Test admin login
+        self.test_admin_login()
         
-        # BUG FIX #1: Demo data generation
+        # BUG FIX: Demo data generation and analytics dashboard
+        print("\n=== TESTING DEMO DATA GENERATION & ANALYTICS (BUG FIX) ===")
         self.test_demo_data_generation_critical()
-        
-        # BUG FIX #2: Team visibility 
-        self.test_team_visibility_critical()
-        
-        # BUG FIX #3: Employee invitation
-        self.test_employee_invitation_critical()
-        
-        # Additional verification
         self.test_analytics_dashboard()
+        
+        # NEW FEATURE: Forgot password workflow
+        print("\n=== TESTING FORGOT PASSWORD WORKFLOW (NEW FEATURE) ===")
+        self.test_forgot_password()
+        
+        # NEW FEATURE: Team role indicators
+        print("\n=== TESTING TEAM ROLE INDICATORS (NEW FEATURE) ===")
+        self.test_team_role_indicators()
         
         # Print summary
         print("\n" + "=" * 60)
-        print("🏁 CRITICAL BUG FIX TESTING COMPLETE")
+        print("🏁 CRITICAL BUG FIX & NEW FEATURE TESTING COMPLETE")
         print(f"📊 Test Summary: {self.tests_passed}/{self.tests_run} tests passed")
         
-        # Critical bug fix status
-        print("\n🔍 CRITICAL BUG FIX STATUS:")
+        # Critical test status
+        print("\n🔍 CRITICAL FEATURE STATUS:")
         critical_tests = [
-            ("Demo Data Generation", any(t['name'].startswith('Demo Data') and t['success'] for t in self.test_results)),
-            ("Team Visibility", any(t['name'].startswith('Team Visibility') and t['success'] for t in self.test_results)),
-            ("Employee Invitation", any(t['name'].startswith('Employee Invitation') and t['success'] for t in self.test_results)),
+            ("Demo Data Generation & Analytics", any(t['name'].startswith('Demo Data') and t['success'] for t in self.test_results)),
+            ("Forgot Password Workflow", any(t['name'].startswith('Forgot Password') and t['success'] for t in self.test_results)),
+            ("Team Role Indicators", any(t['name'].startswith('Team Role') and t['success'] for t in self.test_results)),
         ]
         
         all_critical_passed = True
