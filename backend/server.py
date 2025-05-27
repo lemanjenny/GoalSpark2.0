@@ -303,11 +303,11 @@ async def forgot_password(request: PasswordResetRequest):
         # Don't reveal if email exists for security
         return {"message": "If an account with that email exists, a password reset link has been sent."}
     
-    # Generate reset token (in production, use proper token generation)
+    # Generate secure reset token
     reset_token = str(uuid.uuid4())
     reset_expires = datetime.utcnow() + timedelta(hours=1)  # Token expires in 1 hour
     
-    # Store reset token (in production, use separate password_reset_tokens collection)
+    # Store reset token in database
     await db.users.update_one(
         {"id": user["id"]},
         {"$set": {
@@ -316,13 +316,36 @@ async def forgot_password(request: PasswordResetRequest):
         }}
     )
     
-    # TODO: In production, send email with reset link
-    # For demo, return the token (remove in production)
-    return {
-        "message": "If an account with that email exists, a password reset link has been sent.",
-        "demo_reset_token": reset_token,  # Remove in production
-        "demo_instructions": f"Use this token to reset password: {reset_token}"  # Remove in production
+    # Send password reset email
+    user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+    email_result = await email_service.send_password_reset_email(
+        to_email=user["email"],
+        reset_token=reset_token,
+        user_name=user_name or None
+    )
+    
+    # Log email sending result
+    if email_result["success"]:
+        print(f"✅ Email sent successfully via {email_result['provider']}")
+        if email_result.get("demo_reset_url"):
+            print(f"🔗 Demo Reset URL: {email_result['demo_reset_url']}")
+    else:
+        print(f"❌ Email sending failed: {email_result.get('error', 'Unknown error')}")
+    
+    # Always return success message for security (don't reveal if email exists)
+    response = {
+        "message": "If an account with that email exists, a password reset link has been sent."
     }
+    
+    # Add demo information only if in simulation mode (no SendGrid configured)
+    if email_result.get("provider") == "simulation":
+        response.update({
+            "demo_mode": True,
+            "demo_reset_url": email_result.get("demo_reset_url"),
+            "demo_instructions": email_result.get("demo_instructions")
+        })
+    
+    return response
 
 @api_router.post("/auth/reset-password")
 async def reset_password(reset_data: PasswordReset):
