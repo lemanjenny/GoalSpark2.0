@@ -167,7 +167,6 @@ class ProgressUpdate(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 class ProgressUpdateCreate(BaseModel):
-    goal_id: str
     new_value: float
     status: GoalStatus
     comment: Optional[str] = None
