@@ -1279,8 +1279,12 @@ async def update_goal_progress(
     
     await db.progress_updates.insert_one(progress_update.dict())
     
-    # Calculate progress percentage
-    progress_percentage = (progress_data.new_value / goal["target_value"]) * 100
+    # Calculate progress percentage using comparison logic
+    progress_percentage = calculate_progress_percentage(
+        progress_data.new_value, 
+        goal["target_value"], 
+        goal.get("comparison", "greater_than")
+    )
     
     # Update goal with new progress and status
     update_data = {
