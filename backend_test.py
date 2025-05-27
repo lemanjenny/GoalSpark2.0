@@ -909,7 +909,9 @@ def main():
     tester = GoalTrackerAPITester()
     
     try:
-        success = tester.run_all_tests()
+        # Run critical bug fix tests first
+        print("🎯 RUNNING CRITICAL BUG FIX TESTS")
+        success = tester.run_critical_bug_tests()
         return 0 if success else 1
     except Exception as e:
         print(f"❌ Test runner failed: {str(e)}")
