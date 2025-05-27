@@ -1743,19 +1743,37 @@ const GoalCreationModal = ({ isOpen, onClose, onGoalCreated }) => {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Target Value</label>
-                <input
-                  type="number"
-                  name="target_value"
-                  value={formData.target_value}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="100"
-                  min="0"
-                  step="0.01"
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Target Value
+                  </label>
+                  <input
+                    type="number"
+                    name="target_value"
+                    value={formData.target_value}
+                    onChange={handleChange}
+                    min="0"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Goal Logic
+                  </label>
+                  <select
+                    name="comparison"
+                    value={formData.comparison}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="greater_than">Greater Than (≥)</option>
+                    <option value="less_than">Less Than (≤)</option>
+                    <option value="equal_to">Equal To (=)</option>
+                  </select>
+                </div>
               </div>
 
               <div>
