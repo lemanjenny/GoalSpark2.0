@@ -927,37 +927,88 @@ async def get_goal(goal_id: str, current_user: User = Depends(get_current_user))
     return Goal(**goal)
 
 @api_router.post("/goals/{goal_id}/progress")
-async def update_progress(goal_id: str, update_data: ProgressUpdateCreate, current_user: User = Depends(get_current_user)):
-    # Get goal and verify access
+async def update_goal_progress(
+    goal_id: str, 
+    progress_data: ProgressUpdate, 
+    current_user: User = Depends(get_current_user)
+):
+    """Update goal progress with enhanced activity tracking"""
     goal = await db.goals.find_one({"id": goal_id})
     if not goal:
         raise HTTPException(status_code=404, detail="Goal not found")
     
+    # Check if user is assigned to this goal
     if current_user.id not in goal["assigned_to"]:
-        raise HTTPException(status_code=403, detail="Access denied")
+        raise HTTPException(status_code=403, detail="Not authorized to update this goal")
+    
+    # Store previous status for comparison
+    previous_status = goal.get("status", "on_track")
     
     # Create progress update record
     progress_update = ProgressUpdate(
         goal_id=goal_id,
         user_id=current_user.id,
         previous_value=goal["current_value"],
-        new_value=update_data.new_value,
-        status=update_data.status,
-        comment=update_data.comment
+        new_value=progress_data.progress_value,
+        status=progress_data.status,
+        comment=progress_data.comment
     )
     
     await db.progress_updates.insert_one(progress_update.dict())
     
-    # Update goal with new values
-    await db.goals.update_one(
-        {"id": goal_id},
-        {"$set": {
-            "current_value": update_data.new_value,
-            "status": update_data.status
-        }}
-    )
+    # Calculate progress percentage
+    progress_percentage = (progress_data.progress_value / goal["target_value"]) * 100
     
-    return {"message": "Progress updated successfully"}
+    # Update goal with new progress and status
+    update_data = {
+        "current_value": progress_data.progress_value,
+        "progress_percentage": min(progress_percentage, 100),
+        "status": progress_data.status,
+        "last_updated": datetime.utcnow()
+    }
+    
+    await db.goals.update_one({"id": goal_id}, {"$set": update_data})
+    
+    # Create activity for progress update
+    status_emoji = {"on_track": "🟢", "at_risk": "🟡", "off_track": "🔴"}
+    activity = ActivityItem(
+        type="progress_updated",
+        title="Goal Progress Updated",
+        description=f"{status_emoji.get(progress_data.status, '⚪')} {current_user.first_name} updated '{goal['title']}' to {progress_data.progress_value}/{goal['target_value']} {goal['unit']}",
+        user_id=current_user.id,
+        user_name=f"{current_user.first_name} {current_user.last_name}",
+        goal_id=goal_id,
+        goal_title=goal["title"],
+        metadata={
+            "progress_value": progress_data.progress_value,
+            "target_value": goal["target_value"],
+            "status": progress_data.status,
+            "previous_status": previous_status,
+            "progress_percentage": progress_percentage,
+            "has_comment": bool(progress_data.comment)
+        }
+    )
+    await db.activities.insert_one(activity.dict())
+    
+    # Create additional activity for status changes
+    if previous_status != progress_data.status:
+        status_change_activity = ActivityItem(
+            type="status_changed",
+            title="Goal Status Changed",
+            description=f"Goal '{goal['title']}' status changed from {previous_status.replace('_', ' ').title()} to {progress_data.status.replace('_', ' ').title()}",
+            user_id=current_user.id,
+            user_name=f"{current_user.first_name} {current_user.last_name}",
+            goal_id=goal_id,
+            goal_title=goal["title"],
+            metadata={
+                "previous_status": previous_status,
+                "new_status": progress_data.status,
+                "comment": progress_data.comment
+            }
+        )
+        await db.activities.insert_one(status_change_activity.dict())
+    
+    return {"message": "Progress updated successfully", "progress_percentage": progress_percentage}
 
 @api_router.get("/goals/{goal_id}/progress")
 async def get_goal_progress(goal_id: str, current_user: User = Depends(get_current_user)):
