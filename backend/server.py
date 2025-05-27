@@ -1164,6 +1164,69 @@ async def create_goal(goal_data: GoalCreate, admin_user: User = Depends(get_admi
     
     return goal
 
+# Goal editing endpoint
+@api_router.put("/goals/{goal_id}")
+async def update_goal(goal_id: str, goal_data: GoalCreate, admin_user: User = Depends(get_admin_user)):
+    """Update an existing goal and recalculate progress"""
+    # Check if goal exists
+    existing_goal = await db.goals.find_one({"id": goal_id})
+    if not existing_goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    
+    # Validate assigned users exist if updating assignments
+    for user_id in goal_data.assigned_to:
+        user = await db.users.find_one({"id": user_id})
+        if not user:
+            raise HTTPException(status_code=400, detail=f"User {user_id} not found")
+    
+    # Store original values for activity tracking
+    original_target = existing_goal.get("target_value")
+    original_comparison = existing_goal.get("comparison", "greater_than")
+    
+    # Prepare update data
+    update_data = goal_data.dict()
+    update_data["last_updated"] = datetime.utcnow()
+    
+    # Recalculate progress percentage with new target/comparison
+    current_value = existing_goal.get("current_value", 0)
+    new_progress_percentage = calculate_progress_percentage(
+        current_value,
+        goal_data.target_value,
+        goal_data.comparison
+    )
+    
+    update_data["progress_percentage"] = new_progress_percentage
+    
+    # Update the goal
+    await db.goals.update_one({"id": goal_id}, {"$set": update_data})
+    
+    # Create activity for goal edit
+    changes = []
+    if original_target != goal_data.target_value:
+        changes.append(f"target: {original_target} → {goal_data.target_value}")
+    if original_comparison != goal_data.comparison:
+        changes.append(f"logic: {original_comparison} → {goal_data.comparison}")
+    
+    activity = ActivityItem(
+        type="goal_edited",
+        title="Goal Updated",
+        description=f"Goal '{goal_data.title}' was edited by {admin_user.first_name}. Changes: {', '.join(changes) if changes else 'details updated'}",
+        user_id=admin_user.id,
+        user_name=f"{admin_user.first_name} {admin_user.last_name}",
+        goal_id=goal_id,
+        goal_title=goal_data.title,
+        metadata={
+            "original_target": original_target,
+            "new_target": goal_data.target_value,
+            "original_comparison": original_comparison,
+            "new_comparison": goal_data.comparison,
+            "recalculated_progress": new_progress_percentage
+        }
+    )
+    await db.activities.insert_one(activity.dict())
+    
+    return {"message": "Goal updated successfully", "recalculated_progress": new_progress_percentage}
+
 @api_router.get("/goals", response_model=List[GoalWithComments])
 async def get_goals(
     current_user: User = Depends(get_current_user),
