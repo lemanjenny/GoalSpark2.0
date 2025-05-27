@@ -2106,6 +2106,7 @@ const Dashboard = () => {
   const [showTeamPage, setShowTeamPage] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showEnhancedAnalytics, setShowEnhancedAnalytics] = useState(false);
+  const [showEnhancedAnalytics, setShowEnhancedAnalytics] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [showEnhancedAnalytics, setShowEnhancedAnalytics] = useState(false);
 
