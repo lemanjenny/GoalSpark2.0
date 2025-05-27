@@ -911,11 +911,28 @@ async def invite_employee(invite_data: UserInvite, admin_user: User = Depends(ge
     }
 
 # Admin user management endpoints
-@api_router.get("/admin/users", response_model=List[UserResponse])
+@api_router.get("/admin/users")
 async def get_all_users(admin_user: User = Depends(get_admin_user)):
     """Get all users - admin only"""
     users = await db.users.find({}).to_list(100)
-    return [UserResponse(**user) for user in users]
+    
+    # Clean and return user data with defaults for missing fields
+    user_list = []
+    for user in users:
+        user_data = {
+            "id": user.get("id"),
+            "email": user.get("email"),
+            "first_name": user.get("first_name", ""),
+            "last_name": user.get("last_name", ""),
+            "role": user.get("role", "employee"),
+            "job_title": user.get("job_title", "Employee"),  # Default job title
+            "custom_role": user.get("custom_role"),
+            "manager_id": user.get("manager_id"),
+            "created_at": user.get("created_at")
+        }
+        user_list.append(user_data)
+    
+    return user_list
 
 @api_router.patch("/admin/users/{user_id}/role")
 async def update_user_role(user_id: str, role_data: dict, admin_user: User = Depends(get_admin_user)):
