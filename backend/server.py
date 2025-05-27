@@ -571,7 +571,94 @@ def generate_realistic_comment(status: str, performance_type: str) -> str:
     
     return random.choice(comments)
 
-# Analytics endpoints
+# Activities and Notifications endpoints
+@api_router.get("/activities", response_model=List[ActivityItem])
+async def get_activities(
+    current_user: User = Depends(get_current_user),
+    limit: int = 20,
+    activity_type: Optional[str] = None
+):
+    """Get recent activities/notifications for the user's team"""
+    if current_user.role == UserRole.ADMIN:
+        # Admins see all activities for their team
+        team_members = await db.users.find({"manager_id": current_user.id}).to_list(100)
+        team_member_ids = [member["id"] for member in team_members] + [current_user.id]
+        query = {"user_id": {"$in": team_member_ids}}
+    else:
+        # Employees see their own activities
+        query = {"user_id": current_user.id}
+    
+    # Add activity type filter if provided
+    if activity_type:
+        query["type"] = activity_type
+    
+    activities = await db.activities.find(query).sort("timestamp", -1).limit(limit).to_list(limit)
+    return [ActivityItem(**activity) for activity in activities]
+
+@api_router.get("/activities/unread-count")
+async def get_unread_activities_count(current_user: User = Depends(get_current_user)):
+    """Get count of unread activities (activities from last 24 hours)"""
+    twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+    
+    if current_user.role == UserRole.ADMIN:
+        team_members = await db.users.find({"manager_id": current_user.id}).to_list(100)
+        team_member_ids = [member["id"] for member in team_members] + [current_user.id]
+        query = {"user_id": {"$in": team_member_ids}, "timestamp": {"$gte": twenty_four_hours_ago}}
+    else:
+        query = {"user_id": current_user.id, "timestamp": {"$gte": twenty_four_hours_ago}}
+    
+    count = await db.activities.count_documents(query)
+    return {"unread_count": count}
+
+# Enhanced Comment Prompt endpoint
+@api_router.get("/goals/{goal_id}/comment-prompt")
+async def get_comment_prompt(goal_id: str, status: str, current_user: User = Depends(get_current_user)):
+    """Get contextual comment prompt based on goal status"""
+    goal = await db.goals.find_one({"id": goal_id})
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    
+    # Check access
+    if current_user.id not in goal["assigned_to"]:
+        raise HTTPException(status_code=403, detail="Not authorized to access this goal")
+    
+    prompts = {
+        "on_track": [
+            "Great progress! What's working well for you?",
+            "Keep up the momentum! What strategies are helping you succeed?",
+            "Excellent work! Share what's driving your success.",
+            "You're doing great! What would you like to highlight about your progress?"
+        ],
+        "at_risk": [
+            "What challenges are you facing that we can help address?",
+            "What obstacles have come up, and how can the team support you?",
+            "What's preventing you from staying on track? Let's work together on solutions.",
+            "What support or resources would help you get back on track?",
+            "What specific challenges can we help you overcome?"
+        ],
+        "off_track": [
+            "What steps are you taking to get back on track?",
+            "What's your plan to recover and meet your goal?",
+            "What barriers need to be removed to help you succeed?",
+            "What support do you need from the team to turn this around?",
+            "What's your strategy for getting back on course? How can we help?",
+            "What lessons have you learned that will help you refocus?"
+        ]
+    }
+    
+    import random
+    prompt = random.choice(prompts.get(status, ["Please share an update on your progress."]))
+    
+    return {
+        "prompt": prompt,
+        "status": status,
+        "goal_title": goal["title"],
+        "additional_context": {
+            "current_progress": f"{goal.get('current_value', 0)}/{goal['target_value']} {goal['unit']}",
+            "progress_percentage": goal.get("progress_percentage", 0),
+            "time_remaining": f"Until {goal['end_date'].strftime('%B %d, %Y')}" if goal.get('end_date') else None
+        }
+    }
 @api_router.get("/analytics/dashboard", response_model=AnalyticsData)
 async def get_analytics_dashboard(admin_user: User = Depends(get_admin_user)):
     """Get comprehensive analytics data for dashboard"""
