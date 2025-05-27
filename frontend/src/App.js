@@ -2126,6 +2126,7 @@ const Dashboard = () => {
 
     return () => {
       if (interval) clearInterval(interval);
+      if (refreshInterval) clearInterval(refreshInterval);
     };
   }, []);
 
