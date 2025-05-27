@@ -538,7 +538,17 @@ async def get_analytics_dashboard(admin_user: User = Depends(get_admin_user)):
         month_end = month_start + timedelta(days=30)
         month_name = month_start.strftime("%B %Y")
         
-        month_goals = [g for g in all_goals if month_start <= datetime.fromisoformat(g["start_date"].replace('Z', '+00:00')) <= month_end]
+        # Handle both datetime objects and ISO strings
+        month_goals = []
+        for g in all_goals:
+            start_date = g["start_date"]
+            if isinstance(start_date, str):
+                start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            elif isinstance(start_date, datetime):
+                start_date = start_date.replace(tzinfo=None)  # Remove timezone for comparison
+            
+            if month_start <= start_date <= month_end:
+                month_goals.append(g)
         month_completed = len([g for g in month_goals if g["current_value"] >= g["target_value"] * 0.95])
         
         monthly_trends.append({
