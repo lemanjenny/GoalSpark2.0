@@ -2123,7 +2123,6 @@ const Dashboard = () => {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [refreshInterval, setRefreshInterval] = useState(null);
-  const [refreshInterval, setRefreshInterval] = useState(null);
 
   useEffect(() => {
     fetchGoals();
