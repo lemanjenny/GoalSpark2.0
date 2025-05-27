@@ -496,6 +496,70 @@ class GoalTrackerAPITester:
             self.log_test("Get Custom Roles", False, f"Response: {response}")
             return False
 
+    def test_analytics_demo_data_generation(self):
+        """Test analytics demo data generation (NEW ANALYTICS FEATURE)"""
+        if not self.admin_token:
+            self.log_test("Analytics Demo Data Generation", False, "No admin token available")
+            return False
+            
+        success, response = self.make_request(
+            'POST', 
+            'demo/generate-data', 
+            {}, 
+            token=self.admin_token, 
+            expected_status=200
+        )
+        
+        if success and 'generated' in response:
+            if response['generated']:
+                self.log_test("Analytics Demo Data Generation", True, f"Generated data: {response.get('employees_created', 0)} employees")
+            else:
+                self.log_test("Analytics Demo Data Generation", True, "Demo data already exists")
+            return True
+        else:
+            self.log_test("Analytics Demo Data Generation", False, f"Response: {response}")
+            return False
+
+    def test_analytics_dashboard(self):
+        """Test analytics dashboard endpoint (NEW ANALYTICS FEATURE)"""
+        if not self.admin_token:
+            self.log_test("Analytics Dashboard", False, "No admin token available")
+            return False
+            
+        success, response = self.make_request(
+            'GET', 
+            'analytics/dashboard', 
+            token=self.admin_token, 
+            expected_status=200
+        )
+        
+        if success:
+            # Check for expected analytics sections
+            expected_sections = [
+                'team_overview', 'performance_trends', 'goal_completion_stats',
+                'employee_performance', 'status_distribution', 'recent_activities'
+            ]
+            
+            missing_sections = [section for section in expected_sections if section not in response]
+            
+            if not missing_sections:
+                # Check if we have meaningful data
+                team_overview = response.get('team_overview', {})
+                employee_performance = response.get('employee_performance', [])
+                
+                if team_overview.get('total_employees', 0) > 0 and len(employee_performance) > 0:
+                    self.log_test("Analytics Dashboard", True, 
+                                f"Complete analytics with {team_overview.get('total_employees')} employees")
+                else:
+                    self.log_test("Analytics Dashboard", True, "Analytics structure correct but no data")
+                return True
+            else:
+                self.log_test("Analytics Dashboard", False, f"Missing sections: {missing_sections}")
+                return False
+        else:
+            self.log_test("Analytics Dashboard", False, f"Response: {response}")
+            return False
+
     def test_role_based_goal_assignment(self):
         """Test role-based goal assignment endpoint (NEW FEATURE)"""
         if not self.admin_token or not self.employee_user:
