@@ -937,6 +937,7 @@ const TeamPage = ({ onBack }) => {
   const [editData, setEditData] = useState({ job_title: '', custom_role: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   useEffect(() => {
     fetchTeamMembers();
@@ -951,6 +952,10 @@ const TeamPage = ({ onBack }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEmployeeInvited = () => {
+    fetchTeamMembers();
   };
 
   const handleEdit = (member) => {
