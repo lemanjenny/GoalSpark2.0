@@ -472,8 +472,7 @@ const PieChart = ({ data, title }) => {
 const AnalyticsDashboard = ({ onBack }) => {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [demoDataGenerated, setDemoDataGenerated] = useState(false);
-  const [showDemoOption, setShowDemoOption] = useState(true); // Always show demo option initially
+  const [showDemoDataButton, setShowDemoDataButton] = useState(true); // Always show initially
 
   useEffect(() => {
     fetchAnalyticsData();
@@ -484,17 +483,25 @@ const AnalyticsDashboard = ({ onBack }) => {
       const response = await axios.get(`${API}/analytics/dashboard`);
       setAnalyticsData(response.data);
       
-      // Check if we have meaningful data - if so, hide demo option
-      if (response.data && response.data.team_overview && response.data.team_overview.total_employees > 0) {
-        setDemoDataGenerated(true);
-        setShowDemoOption(false); // Hide demo option if real data exists
+      // Only hide demo button if we have substantial data (more than 10 team members with goals)
+      if (response.data && response.data.team_overview && 
+          response.data.team_overview.total_employees > 10 && 
+          response.data.team_overview.total_goals > 10) {
+        setShowDemoDataButton(false);
       } else {
-        setShowDemoOption(true); // Show demo option if no meaningful data
+        setShowDemoDataButton(true); // Keep showing demo option
       }
     } catch (error) {
       console.error('Error fetching analytics data:', error);
-      setAnalyticsData({ team_overview: { total_employees: 0 }, performance_trends: [], goal_completion_stats: {}, employee_performance: [], status_distribution: {}, recent_activities: [] });
-      setShowDemoOption(true); // Show demo option on error
+      setAnalyticsData({ 
+        team_overview: { total_employees: 0, total_goals: 0, active_goals: 0, completed_goals: 0, completion_rate: 0, avg_progress: 0 }, 
+        performance_trends: [], 
+        goal_completion_stats: { total: 0, on_track: 0, at_risk: 0, off_track: 0, on_track_percentage: 0, at_risk_percentage: 0, off_track_percentage: 0 }, 
+        employee_performance: [], 
+        status_distribution: { on_track: 0, at_risk: 0, off_track: 0 }, 
+        recent_activities: [] 
+      });
+      setShowDemoDataButton(true);
     } finally {
       setLoading(false);
     }
@@ -504,16 +511,8 @@ const AnalyticsDashboard = ({ onBack }) => {
     setLoading(true);
     try {
       const response = await axios.post(`${API}/demo/generate-data`);
-      if (response.data.generated) {
-        setDemoDataGenerated(true);
-        setShowDemoOption(false);
-        await fetchAnalyticsData();
-      } else {
-        // Demo data already exists
-        setDemoDataGenerated(true);
-        setShowDemoOption(false);
-        await fetchAnalyticsData();
-      }
+      console.log('Demo data response:', response.data);
+      await fetchAnalyticsData(); // Refresh data
     } catch (error) {
       console.error('Error generating demo data:', error);
     } finally {
