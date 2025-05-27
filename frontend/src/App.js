@@ -2202,10 +2202,6 @@ const Dashboard = () => {
     return { onTrack, atRisk, offTrack };
   };
 
-  if (showEnhancedAnalytics) {
-    return <ClickableAnalyticsDashboard onBack={() => setShowEnhancedAnalytics(false)} />;
-  }
-
   if (showAnalytics) {
     return <ClickableAnalyticsDashboard onBack={() => setShowAnalytics(false)} />;
   }
