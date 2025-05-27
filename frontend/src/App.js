@@ -106,10 +106,26 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
       const response = await axios.post(`${API}/auth/forgot-password`, { email });
       setMessage(response.data.message);
       
-      // For demo purposes, show the reset token
-      if (response.data.demo_reset_token) {
-        setResetToken(response.data.demo_reset_token);
-        setShowResetForm(true);
+      // Handle demo mode - check for demo_reset_url or demo_reset_token
+      if (response.data.demo_mode) {
+        if (response.data.demo_reset_url) {
+          // Extract token from URL
+          const urlParams = new URLSearchParams(response.data.demo_reset_url.split('?')[1]);
+          const token = urlParams.get('token');
+          if (token) {
+            setResetToken(token);
+            setShowResetForm(true);
+          }
+        } else if (response.data.demo_reset_token) {
+          // Legacy support for direct token
+          setResetToken(response.data.demo_reset_token);
+          setShowResetForm(true);
+        }
+        
+        // Show demo instructions
+        if (response.data.demo_instructions) {
+          setMessage(response.data.message + '\n\n' + 'Demo Mode: ' + response.data.demo_instructions);
+        }
       }
     } catch (error) {
       setError(error.response?.data?.detail || 'Failed to send reset email');
