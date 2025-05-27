@@ -664,6 +664,10 @@ class GoalTrackerAPITester:
         goal = self.test_create_goal()
         self.test_employee_create_goal()
         
+        # NEW FEATURE TESTS - Analytics Dashboard
+        self.test_analytics_demo_data_generation()
+        self.test_analytics_dashboard()
+        
         # NEW FEATURE TESTS - Team Management
         self.test_get_team_roster()
         self.test_update_team_member()
