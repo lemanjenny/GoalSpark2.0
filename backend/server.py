@@ -331,9 +331,11 @@ async def forgot_password(request: PasswordResetRequest):
             "demo_mode": True,
             "demo_note": "Demo user created! You can reset the password and then login with the new password.",
             "demo_reset_url": demo_reset_url,
-            "demo_instructions": f"Demo user created for {request.email}. Use this URL to set a password, then login: {demo_reset_url}",
+            "demo_instructions": f"Demo Manager created for {request.email}. Use this URL to set a password, then login: {demo_reset_url}",
             "demo_email": request.email,
-            "demo_default_password": "demopassword123"
+            "demo_default_password": "demopassword123",
+            "demo_role": "admin",
+            "demo_tip": "After login, use the 'Generate Demo Data' button to populate your account with sample goals and analytics."
         }
     
     # Generate secure reset token for real user
