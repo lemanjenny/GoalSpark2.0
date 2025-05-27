@@ -835,19 +835,6 @@ class GoalWithComments(Goal):
     latest_comment_timestamp: Optional[datetime] = None
     latest_comment_user: Optional[str] = None
 
-# Activity/Notification Models
-class ActivityItem(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    type: str  # "goal_created", "progress_updated", "status_changed", etc.
-    title: str
-    description: str
-    user_id: str
-    user_name: str
-    goal_id: Optional[str] = None
-    goal_title: Optional[str] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-
 # Goal management routes
 @api_router.post("/goals", response_model=Goal)
 async def create_goal(goal_data: GoalCreate, admin_user: User = Depends(get_admin_user)):
