@@ -272,21 +272,18 @@ async def get_managers():
 async def generate_dummy_data(admin_user: User = Depends(get_admin_user)):
     """Generate realistic dummy data for analytics demonstration"""
     
-    # Check if demo data already exists for this admin
-    existing_demo = await db.users.find_one({
-        "email": {"$regex": "^testemployee.*@demo.com$"},
-        "manager_id": admin_user.id
-    })
+    # Check if demo data already exists for ANY admin (not just current admin)
+    existing_demo = await db.users.find_one({"email": {"$regex": "testemployee.*@demo.com"}})
     if existing_demo:
-        return {"message": "Demo data already exists for this admin", "generated": False}
+        return {"message": "Demo data already exists", "generated": False}
     
-    # Create 3 test employees
+    # Create 3 test employees under the current admin
     test_employees = []
     employee_profiles = [
         {
             "first_name": "Test Employee",
             "last_name": "1",
-            "email": f"testemployee1_{admin_user.id}@demo.com",
+            "email": "testemployee1@demo.com",
             "job_title": "Sales Representative",
             "custom_role": "Sales Rep",
             "performance_type": "high"  # High performer
@@ -294,7 +291,7 @@ async def generate_dummy_data(admin_user: User = Depends(get_admin_user)):
         {
             "first_name": "Test Employee", 
             "last_name": "2",
-            "email": f"testemployee2_{admin_user.id}@demo.com",
+            "email": "testemployee2@demo.com",
             "job_title": "Marketing Specialist",
             "custom_role": "Marketing",
             "performance_type": "average"  # Average performer
@@ -302,7 +299,7 @@ async def generate_dummy_data(admin_user: User = Depends(get_admin_user)):
         {
             "first_name": "Test Employee",
             "last_name": "3", 
-            "email": f"testemployee3_{admin_user.id}@demo.com",
+            "email": "testemployee3@demo.com",
             "job_title": "Customer Support",
             "custom_role": "Support",
             "performance_type": "struggling"  # Needs improvement
