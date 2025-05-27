@@ -1356,12 +1356,7 @@ const TeamPage = ({ onBack }) => {
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Team Roster</h2>
               <p className="text-sm text-gray-600 mt-1">
-                {filteredTeamMembers.length} of {teamMembers.length} team member{teamMembers.length !== 1 ? 's' : ''}
-                {(nameFilter || roleFilter) && (
-                  <span className="ml-2 text-blue-600">
-                    (filtered{nameFilter && ` by "${nameFilter}"`}{roleFilter && ` by role "${roleFilter}"`})
-                  </span>
-                )}
+                Showing {filteredMembers.length} of {teamMembers.length} team member{teamMembers.length !== 1 ? 's' : ''}
               </p>
             </div>
             <button
