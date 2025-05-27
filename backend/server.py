@@ -195,7 +195,7 @@ async def get_admin_user(current_user: User = Depends(get_current_user)):
 # Root route for testing
 @api_router.get("/")
 async def root():
-    return {"message": "Goal Tracker API is running!"}
+    return {"message": "Goal Spark 2.0 API is running!"}
 
 # Authentication routes
 @api_router.post("/auth/register")
