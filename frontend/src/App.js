@@ -1176,6 +1176,13 @@ const TeamPage = ({ onBack }) => {
           </div>
         )}
       </main>
+
+      {/* Employee Invite Modal */}
+      <EmployeeInviteModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        onEmployeeInvited={handleEmployeeInvited}
+      />
     </div>
   );
 };
