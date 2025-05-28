@@ -19,12 +19,23 @@ import random
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-# Extract DB name from MONGO_URL
-db_name = mongo_url.split('/')[-1]
+# Environment-based configuration
+MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017/goaltracker')
+JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
+
+# Database connection
+client = AsyncIOMotorClient(MONGO_URL)
+# Extract database name from URL or use default
+if 'mongodb+srv://' in MONGO_URL or '/' in MONGO_URL:
+    # Production MongoDB (Atlas) - extract database name from URL
+    db_name = MONGO_URL.split('/')[-1].split('?')[0] if '/' in MONGO_URL else 'goaltracker'
+else:
+    # Local MongoDB
+    db_name = 'goaltracker'
+
 db = client[db_name]
+
+print(f"🔗 Connected to MongoDB: {db_name}")
 
 # Security
 SECRET_KEY = "your-secret-key-change-in-production"
