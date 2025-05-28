@@ -1,0 +1,84 @@
+{
+  "name": "goal-spark-2.0",
+  "version": "2.0.0",
+  "description": "Goal Spark 2.0 - Business Intelligence Platform for Goal Tracking",
+  "main": "index.js",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "heroku-postbuild": "cd frontend && npm install && npm run build && cd ../backend && pip install -r requirements.txt",
+    "start": "cd backend && python -m uvicorn server:app --host 0.0.0.0 --port $PORT",
+    "dev-frontend": "cd frontend && npm start",
+    "dev-backend": "cd backend && uvicorn server:app --reload"
+  },
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
+  },
+  "keywords": [
+    "goal-tracking",
+    "business-intelligence", 
+    "team-management",
+    "analytics",
+    "careerplug"
+  ],
+  "author": "CareerPlug",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lemanjenny/GoalSpark2.0"
+  },
+  "homepage": "https://goalspark-careerplug.herokuapp.com"
+}
+📄 FILE 2:
+Procfile
+Filename:
+Procfile
+(no extension, in root directory)
+
+web: cd backend && python -m uvicorn server:app --host 0.0.0.0 --port $PORT
+📄 FILE 3:
+runtime.txt
+Filename:
+runtime.txt
+(in root directory)
+
+python-3.11.7
+📄 FILE 4:
+app.json
+Filename:
+app.json
+(in root directory)
+
+{
+  "name": "Goal Spark 2.0",
+  "description": "Business Intelligence Platform for Goal Tracking and Team Performance Management",
+  "repository": "https://github.com/lemanjenny/GoalSpark2.0",
+  "keywords": ["python", "react", "fastapi", "mongodb", "goal-tracking", "analytics"],
+  "stack": "heroku-22",
+  "env": {
+    "SENDGRID_API_KEY": {
+      "description": "SendGrid API key for email functionality",
+      "required": true
+    },
+    "MONGO_URL": {
+      "description": "MongoDB connection string",
+      "required": true
+    },
+    "JWT_SECRET_KEY": {
+      "description": "Secret key for JWT token generation",
+      "required": true
+    },
+    "FRONTEND_URL": {
+      "description": "Frontend URL for email links",
+      "value": "https://goalspark-careerplug.herokuapp.com"
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    },
+    {
+      "url": "heroku/python"
+    }
+  ]
+}
