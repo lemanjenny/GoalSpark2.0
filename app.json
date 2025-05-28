@@ -1,0 +1,46 @@
+{
+  "name": "Goal Spark 2.0",
+  "description": "Business Intelligence Platform for Goal Tracking and Team Performance Management",
+  "repository": "https://github.com/careerplug/goal-spark-2.0",
+  "logo": "https://goalsparkapp.com/logo.png",
+  "keywords": ["python", "react", "fastapi", "mongodb", "goal-tracking", "analytics"],
+  "stack": "heroku-22",
+  "env": {
+    "SENDGRID_API_KEY": {
+      "description": "SendGrid API key for email functionality",
+      "required": true
+    },
+    "MONGO_URL": {
+      "description": "MongoDB connection string (MongoDB Atlas recommended)",
+      "required": true
+    },
+    "JWT_SECRET_KEY": {
+      "description": "Secret key for JWT token generation",
+      "required": true,
+      "generator": "secret"
+    },
+    "FROM_EMAIL": {
+      "description": "From email address for system emails",
+      "value": "noreply@careerplug.com"
+    },
+    "FRONTEND_URL": {
+      "description": "Frontend URL for email links",
+      "value": "https://goalspark-careerplug.herokuapp.com"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    },
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "addons": []
+}

@@ -1,70 +1,71 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-.idea/
-dist
-# dependencies
+# Dependencies
 node_modules/
-/.pnp
-.pnp.js
-.yarn/install-state.gz
-.vscode
-# testing
-/coverage
-dump.rdb
-chainlit.md
-.chainlit
-# next.js
-/.next/
-/out/
-.ipynb_checkpoints/
-# production
-/build
+*/node_modules/
 
-# misc
+# Production builds
+build/
+dist/
+*/build/
+*/dist/
+
+# Environment variables
+.env
+*/.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+*.so
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
 .DS_Store
-*.pem
+Thumbs.db
 
-# debug
+# Logs
+*.log
+logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
-# .env*.local
-*token.json*
-# vercel
-.vercel
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-*pyc*
-#*.env
-.ac
-agenthub/agents/youtube/db
-*credentials.json*
+# Coverage directory used by tools like istanbul
+coverage/
 
-venv/
-.venv/
-__pycache__/
+# Dependency directories
+jspm_packages/
 
-# ===================
-# ADDITIONAL RULES TO PREVENT FILE SIZE VIOLATIONS
-# ===================
-# Archive files (anywhere in the project)
-**/*.zip
-**/*.tar.gz
-**/*.tar
-**/*.tgz
+# Optional npm cache directory
+.npm
 
-# Build caches and artifacts
-.cache/
-*.pack
+# Optional REPL history
+.node_repl_history
 
-# System packages
-*.deb
+# Output of 'npm pack'
+*.tgz
 
-# Python native libraries
-*.dylib
+# Yarn Integrity file
+.yarn-integrity
 
-# Android SDK
-android-sdk/
+# dotenv environment variables file
+.env
+
+# Heroku
+.heroku/
