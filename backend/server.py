@@ -38,9 +38,9 @@ db = client[db_name]
 print(f"🔗 Connected to MongoDB: {db_name}")
 
 # Security
-SECRET_KEY = "your-secret-key-change-in-production"
+SECRET_KEY = JWT_SECRET_KEY
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 24 * 60  # 30 days
+ACCESS_TOKEN_EXPIRE_MINUTES = 2880  # 48 hours
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
